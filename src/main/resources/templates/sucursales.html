@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sucursales y Ubicaciones - Aura Spa</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .map-container { width: 100%; height: 520px; border-radius: 12px; overflow: hidden; border: 1px solid #dee2e6; }
+        .branch-card { cursor: pointer; transition: all 0.2s; }
+        .branch-card:hover, .branch-card.active { border-color: #198754 !important; background-color: #f0fdf4; }
+    </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="/"><i class="fa-solid fa-spa text-success me-2"></i>AURA SPA</a>
+        <div class="ms-auto">
+            <a href="/" class="btn btn-outline-light btn-sm me-2">Inicio</a>
+            <a href="/agendar" class="btn btn-success btn-sm">Agendar Cita</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-5">
+    <div class="mb-4">
+        <h2 class="fw-bold text-dark">Nuestras 4 Sucursales</h2>
+        <p class="text-muted">Encuentra la sede más cercana a tu ubicación y consulta las opiniones de nuestros clientes.</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Columna Izquierda: Tarjetas de Sucursal -->
+        <div class="col-lg-5">
+            <!-- Sede 1 -->
+            <div class="card branch-card active shadow-sm p-3 mb-3 border-start border-4 border-success" onclick="updateMap(-2.1709, -79.9005, 'Norte 1 - Kennedy')">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h5 class="fw-bold text-dark mb-1">1. Sede Norte 1 (Kennedy)</h5>
+                    <span class="badge bg-success">Sector Norte</span>
+                </div>
+                <p class="small text-muted mb-2"><i class="fa-solid fa-location-dot text-danger me-1"></i>Av. San Jorge y Fco. Boloña</p>
+                <div class="small text-muted mb-2"><i class="fa-regular fa-clock me-1"></i>Lun - Sáb: 08h00 - 20h00</div>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <span class="text-warning small"><i class="fa-solid fa-star"></i> 4.8 (142 reseñas)</span>
+                    <a href="/agendar?sede=norte1" class="btn btn-sm btn-outline-success">Elegir esta sede</a>
+                </div>
+            </div>
+
+            <!-- Sede 2 -->
+            <div class="card branch-card shadow-sm p-3 mb-3 border-start border-4 border-primary" onclick="updateMap(-2.1450, -79.8650, 'Norte 2 - Samborondón')">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h5 class="fw-bold text-dark mb-1">2. Sede Norte 2 (Samborondón)</h5>
+                    <span class="badge bg-primary">Alta Demanda</span>
+                </div>
+                <p class="small text-muted mb-2"><i class="fa-solid fa-location-dot text-danger me-1"></i>Km 2.5 Vía Samborondón</p>
+                <div class="small text-muted mb-2"><i class="fa-regular fa-clock me-1"></i>Mar - Dom: 09h00 - 21h00</div>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <span class="text-warning small"><i class="fa-solid fa-star"></i> 4.9 (210 reseñas)</span>
+                    <a href="/agendar?sede=norte2" class="btn btn-sm btn-outline-success">Elegir esta sede</a>
+                </div>
+            </div>
+
+            <!-- Sede 3 -->
+            <div class="card branch-card shadow-sm p-3 mb-3 border-start border-4 border-secondary" onclick="updateMap(-2.1945, -79.8820, 'Centro - Malecón')">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h5 class="fw-bold text-dark mb-1">3. Sede Centro (Malecón)</h5>
+                    <span class="badge bg-secondary">Sector Centro</span>
+                </div>
+                <p class="small text-muted mb-2"><i class="fa-solid fa-location-dot text-danger me-1"></i>Av. 9 de Octubre y Pedro Carbo</p>
+                <div class="small text-muted mb-2"><i class="fa-regular fa-clock me-1"></i>Lun - Vie: 08h30 - 19h30</div>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <span class="text-warning small"><i class="fa-solid fa-star"></i> 4.6 (98 reseñas)</span>
+                    <a href="/agendar?sede=centro" class="btn btn-sm btn-outline-success">Elegir esta sede</a>
+                </div>
+            </div>
+
+            <!-- Sede 4 -->
+            <div class="card branch-card shadow-sm p-3 mb-3 border-start border-4 border-warning" onclick="updateMap(-2.2150, -79.8980, 'Sur - Centenario')">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h5 class="fw-bold text-dark mb-1">4. Sede Sur (Centenario)</h5>
+                    <span class="badge bg-warning text-dark">Promociones</span>
+                </div>
+                <p class="small text-muted mb-2"><i class="fa-solid fa-location-dot text-danger me-1"></i>Rosa Borja de Ycaza</p>
+                <div class="small text-muted mb-2"><i class="fa-regular fa-clock me-1"></i>Lun - Sáb: 09h00 - 19h00</div>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <span class="text-warning small"><i class="fa-solid fa-star"></i> 4.7 (84 reseñas)</span>
+                    <a href="/agendar?sede=sur" class="btn btn-sm btn-outline-success">Elegir esta sede</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha: Mapa de Google Maps Embebido -->
+        <div class="col-lg-7">
+            <div class="map-container shadow-sm">
+                <!-- Iframe con vista de mapa dinámico centrado en Guayaquil -->
+                <iframe id="mapFrame" 
+                    src="https://maps.google.com/maps?q=-2.1709,-79.9005&z=14&output=embed" 
+                    width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy">
+                </iframe>
+            </div>
+            <div class="bg-white p-3 rounded-bottom border border-top-0 small text-muted">
+                <i class="fa-solid fa-circle-info text-primary me-1"></i> Haz clic en cualquiera de las sucursales para actualizar la ubicación en el mapa.
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de Reseñas de Clientes -->
+    <div class="mt-5 pt-4 border-top">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold">Reseñas y Experiencias de Clientes</h3>
+            <button class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#modalResena"><i class="fa-solid fa-pen me-1"></i>Escribir Reseña</button>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3 h-100 bg-white">
+                    <div class="text-warning mb-2"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                    <p class="small text-muted fst-italic">"La sede de Samborondón es impecable. El masaje con piedras calientes me quitó todo el dolor de cuello. 100% recomendado."</p>
+                    <div class="d-flex justify-content-between align-items-center mt-auto small">
+                        <span class="fw-bold">Camila V.</span>
+                        <span class="badge bg-light text-secondary">Sede Norte 2</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3 h-100 bg-white">
+                    <div class="text-warning mb-2"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i></div>
+                    <p class="small text-muted fst-italic">"Muy buena atención en la sede Centro durante mi descanso de almuerzo. Puntuales y rápidos con la limpieza facial."</p>
+                    <div class="d-flex justify-content-between align-items-center mt-auto small">
+                        <span class="fw-bold">Roberto M.</span>
+                        <span class="badge bg-light text-secondary">Sede Centro</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3 h-100 bg-white">
+                    <div class="text-warning mb-2"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                    <p class="small text-muted fst-italic">"Fui a la sucursal de Kennedy. Las instalaciones son muy cómodas y la terapeuta fue muy profesional en todo momento."</p>
+                    <div class="d-flex justify-content-between align-items-center mt-auto small">
+                        <span class="fw-bold">Estefanía R.</span>
+                        <span class="badge bg-light text-secondary">Sede Norte 1</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateMap(lat, lng, title) {
+        const frame = document.getElementById('mapFrame');
+        frame.src = `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
