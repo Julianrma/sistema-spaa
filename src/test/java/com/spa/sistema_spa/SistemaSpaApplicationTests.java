@@ -7,6 +7,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.beans.factory.annotation.Autowired;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.mock.web.MockHttpSession;
 import java.util.List;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -56,15 +57,31 @@ class SistemaSpaApplicationTests {
 
 	@Test
 	void validCredentialsOpenDashboard() throws Exception {
+		MockHttpSession initialSession = new MockHttpSession();
+		String initialSessionId = initialSession.getId();
 		HttpSession session = mockMvc.perform(post("/admin/login")
+				.session(initialSession)
 				.param("username", "admin")
 				.param("password", "1234"))
 				.andExpect(status().is3xxRedirection())
 				.andExpect(redirectedUrl("/admin/dashboard"))
 				.andReturn().getRequest().getSession();
+		org.junit.jupiter.api.Assertions.assertNotEquals(initialSessionId, session.getId());
 
 		mockMvc.perform(get("/admin/dashboard").session((org.springframework.mock.web.MockHttpSession) session))
 				.andExpect(status().isOk());
+	}
+
+	@Test
+	void anonymousUserCannotDeleteService() throws Exception {
+		SpaService service = serviceRepository.save(new SpaService("Servicio protegido", "Prueba",
+				"No debe eliminarse sin login", 30, new BigDecimal("10.00"), "https://example.com/protected.jpg"));
+
+		mockMvc.perform(post("/admin/services/delete").param("id", service.getId().toString()))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/admin/login"));
+
+		org.junit.jupiter.api.Assertions.assertTrue(serviceRepository.existsById(service.getId()));
 	}
 
 	@Test

@@ -14,7 +14,7 @@ bash mvnw spring-boot:run
 
 Hibernate crea y actualiza las tablas `spa_services`, `branches`, `masseuses`, `reservations` y `reviews` automáticamente. Los servicios, sucursales y masajistas viven en PostgreSQL: el portal administrativo permite agregarlos, editarlos, activarlos, desactivarlos y eliminarlos sin modificar el código.
 
-Cada reserva se guarda cuando el cliente pulsa “Confirmar y Agendar Turno”. La aplicación registra el servicio, sucursal, masajista, nombre, cédula, teléfono, correo, fecha, hora y estado `PENDIENTE`. Los horarios disponibles son de 09:00 a 18:00 y se bloquean por masajista y fecha. En pgAdmin puedes verlo en `aura_spa > Schemas > public > Tables > reservations`; para consultar los datos usa `SELECT * FROM reservations ORDER BY id DESC;`.
+Cada reserva se guarda cuando el cliente pulsa “Confirmar y Agendar Turno”. La aplicación registra el servicio, sucursal, masajista, nombre, cédula, teléfono, correo, fecha, hora y estado `PENDIENTE`. Los turnos se calculan cada 30 minutos según el horario de la sucursal y la duración del servicio; también se descartan los horarios que se solapan con otra cita activa de la masajista. En pgAdmin puedes verlo en `aura_spa > Schemas > public > Tables > reservations`; para consultar los datos usa `SELECT * FROM reservations ORDER BY id DESC;`.
 
 Para administrar el catálogo entra al dashboard, busca `Catálogo de servicios` y usa `Nuevo servicio` o las acciones de cada fila. Los servicios desactivados no aparecen para los clientes, pero permanecen en la base de datos.
 
@@ -26,12 +26,7 @@ Desde VS Code también puedes ejecutar `SistemaSpaApplication` desde Run. La con
 
 ## Portal administrativo
 
-Abre `http://localhost:8080/admin/login` con:
-
-- Usuario: `admin`
-- Contraseña: `1234`
-
-Las credenciales se pueden cambiar mediante `SPA_ADMIN_USERNAME` y `SPA_ADMIN_PASSWORD`.
+Antes de iniciar la aplicación, configura `SPA_ADMIN_USERNAME` y `SPA_ADMIN_PASSWORD` con credenciales propias. Sin ambas variables, el acceso administrativo queda deshabilitado; no hay credenciales predeterminadas. Por ejemplo, expórtalas en la terminal antes de ejecutar la app y luego abre `http://localhost:8080/admin/login`.
 
 ## Pruebas
 

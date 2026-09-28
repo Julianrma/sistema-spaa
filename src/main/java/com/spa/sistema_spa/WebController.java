@@ -4,6 +4,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -20,22 +21,20 @@ public class WebController {
     private final BranchRepository branchRepository;
     private final MasseuseRepository masseuseRepository;
     private final ReservationBookingService reservationBookingService;
-    private final String adminUsername;
-    private final String adminPassword;
+    private final AdminCredentials adminCredentials;
 
     public WebController(SpaServiceRepository serviceRepository, ReservationRepository reservationRepository,
                          ReviewRepository reviewRepository,
                          BranchRepository branchRepository, MasseuseRepository masseuseRepository,
                          ReservationBookingService reservationBookingService,
-                         org.springframework.core.env.Environment environment) {
+                         AdminCredentials adminCredentials) {
         this.serviceRepository = serviceRepository;
         this.reservationRepository = reservationRepository;
         this.reviewRepository = reviewRepository;
         this.branchRepository = branchRepository;
         this.masseuseRepository = masseuseRepository;
         this.reservationBookingService = reservationBookingService;
-        this.adminUsername = environment.getProperty("spa.admin.username", "admin");
-        this.adminPassword = environment.getProperty("spa.admin.password", "1234");
+        this.adminCredentials = adminCredentials;
     }
 
     @GetMapping("/")
@@ -86,16 +85,29 @@ public class WebController {
     }
 
     @GetMapping("/admin/login")
-    public String adminLogin() { return "admin-login"; }
+    public String adminLogin(Model model) {
+        if (!adminCredentials.isConfigured()) {
+            model.addAttribute("error", "El acceso administrativo no está configurado. Define SPA_ADMIN_USERNAME y SPA_ADMIN_PASSWORD.");
+            model.addAttribute("loginDisabled", true);
+        }
+        return "admin-login";
+    }
 
     @PostMapping("/admin/login")
     public String authenticate(@RequestParam String username, @RequestParam String password,
-                               HttpSession session, Model model) {
-        if (adminUsername.equals(username) && adminPassword.equals(password)) {
-            session.setAttribute("adminAuthenticated", true);
+                               HttpServletRequest request, Model model) {
+        if (adminCredentials.matches(username, password)) {
+            HttpSession existingSession = request.getSession(false);
+            if (existingSession != null) {
+                existingSession.invalidate();
+            }
+            request.getSession(true).setAttribute("adminAuthenticated", true);
             return "redirect:/admin/dashboard";
         }
-        model.addAttribute("error", "Usuario o contraseña incorrectos.");
+        model.addAttribute("error", adminCredentials.isConfigured()
+                ? "Usuario o contraseña incorrectos."
+                : "El acceso administrativo no está configurado. Define SPA_ADMIN_USERNAME y SPA_ADMIN_PASSWORD.");
+        model.addAttribute("loginDisabled", !adminCredentials.isConfigured());
         return "admin-login";
     }
 
