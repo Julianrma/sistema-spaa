@@ -1,5 +1,34 @@
 # Aura Spa
 
+## Java y compilación
+
+Utiliza **JDK 21 LTS** para Maven, el IDE y la ejecución. Configura `JAVA_HOME`
+para apuntar a ese JDK y utiliza su directorio `bin` en `PATH`. No guardes rutas
+locales del JDK en el repositorio.
+
+El Maven Wrapper fija **Maven 3.9.16**. Usa `./mvnw` (o `mvnw.cmd` en Windows)
+en lugar de una instalación global de Maven. Spring Boot permanece en **4.1.1**.
+El parent de Spring Boot configura `maven.compiler.release` con `java.version`,
+que este proyecto fija en **21**, para generar bytecode y usar APIs de Java 21.
+
+Comprueba que Java y Maven utilizan JDK 21:
+
+```bash
+java -version
+./mvnw -version
+```
+
+Compilación limpia y pruebas unitarias sin iniciar Spring ni acceder a una base
+de datos:
+
+```bash
+./mvnw clean compile
+./mvnw -Dtest=AdminCredentialsTests,BookingAvailabilityTests,LoginAttemptServiceTests test
+```
+
+`clean` elimina los artefactos generados de `target/`. Ejecuta una compilación
+limpia al cambiar de JDK para evitar reutilizar clases de compilaciones previas.
+
 ## PostgreSQL con pgAdmin
 
 1. En pgAdmin crea una base de datos llamada `aura_spa`.
@@ -29,6 +58,11 @@ Desde VS Code también puedes ejecutar `SistemaSpaApplication` desde Run. La con
 Antes de iniciar la aplicación, configura `SPA_ADMIN_USERNAME` y `SPA_ADMIN_PASSWORD` con credenciales propias. Sin ambas variables, el acceso administrativo queda deshabilitado; no hay credenciales predeterminadas. Por ejemplo, expórtalas en la terminal antes de ejecutar la app y luego abre `http://localhost:8080/admin/login`.
 
 ## Pruebas
+
+La suite completa incluye `SistemaSpaApplicationTests`, que levanta el contexto
+Spring y ejecuta los runners de arranque sobre el perfil de pruebas H2, con DDL y
+cambios de datos. No ejecutes este comando si necesitas una verificación sin
+esas operaciones; utiliza la selección de pruebas unitarias indicada arriba.
 
 ```bash
 bash mvnw test

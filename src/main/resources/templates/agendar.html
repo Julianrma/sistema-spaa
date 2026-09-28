@@ -31,7 +31,7 @@
                 <div class="card-body p-4">
                     <div th:if="${confirmation}" class="alert alert-success" role="alert"><i class="fa-solid fa-circle-check me-2"></i><span th:text="${confirmation}">Cita registrada.</span></div>
                     <div th:if="${error}" class="alert alert-danger" role="alert"><i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${error}">No se pudo registrar la cita.</span></div>
-                    <form action="/reservas/confirmar" method="POST">
+                    <form th:action="/reservas/confirmar" method="POST">
                         <!-- Paso 1: Selección de Sucursal -->
                         <div class="mb-4">
                             <label class="form-label fw-bold"><i class="fa-solid fa-shop text-success me-2"></i>Paso 1: Selecciona la Sucursal</label>

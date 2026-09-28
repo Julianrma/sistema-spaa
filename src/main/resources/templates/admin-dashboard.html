@@ -29,7 +29,7 @@
                 <li><a href="#servicios"><i class="fa-solid fa-list-check me-2"></i>Servicios CRUD</a></li>
                 <li><a href="#resenas"><i class="fa-solid fa-star-half-stroke me-2"></i>Moderación Reseñas</a></li>
                 <li class="mt-4"><a href="/" class="text-warning"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Ver Portal Cliente</a></li>
-                <li><form action="/admin/logout" method="post"><button class="btn btn-link text-danger text-decoration-none px-3" type="submit"><i class="fa-solid fa-right-from-bracket me-2"></i>Cerrar sesión</button></form></li>
+                <li><form th:action="/admin/logout" method="post"><button class="btn btn-link text-danger text-decoration-none px-3" type="submit"><i class="fa-solid fa-right-from-bracket me-2"></i>Cerrar sesión</button></form></li>
             </ul>
         </nav>
 
@@ -120,7 +120,7 @@
                 </div>
                 <div id="service-form" class="border-bottom p-3 bg-light">
                     <h6 class="fw-bold" th:text="${editingService != null ? 'Editar servicio' : 'Agregar servicio'}">Agregar servicio</h6>
-                    <form action="/admin/services/save" method="post" class="row g-3">
+                    <form th:action="/admin/services/save" method="post" class="row g-3">
                         <input type="hidden" name="id" th:value="${editingService != null ? editingService.id : ''}">
                         <div class="col-md-6"><label class="form-label small fw-semibold">Nombre</label><input name="name" class="form-control" required th:value="${editingService != null ? editingService.name : ''}"></div>
                         <div class="col-md-6"><label class="form-label small fw-semibold">Categoría</label><input name="category" class="form-control" required th:value="${editingService != null ? editingService.category : ''}"></div>
@@ -148,8 +148,8 @@
                                 <td><span class="badge" th:classappend="${service.active ? ' bg-success' : ' bg-secondary'}" th:text="${service.active ? 'Activo' : 'Inactivo'}">Activo</span></td>
                                 <td class="text-end text-nowrap">
                                     <a th:href="@{/admin/services/edit(id=${service.id})}" class="btn btn-sm btn-outline-primary" title="Editar"><i class="fa-solid fa-pen"></i></a>
-                                    <form action="/admin/services/toggle" method="post" class="d-inline"><input type="hidden" name="id" th:value="${service.id}"><button type="submit" class="btn btn-sm btn-outline-warning" th:title="${service.active ? 'Desactivar' : 'Activar'}"><i th:class="${service.active ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'}"></i></button></form>
-                                    <form action="/admin/services/delete" method="post" class="d-inline" onsubmit="return confirm('¿Eliminar este servicio? Esta acción no se puede deshacer.');"><input type="hidden" name="id" th:value="${service.id}"><button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="fa-solid fa-trash"></i></button></form>
+                                    <form th:action="/admin/services/toggle" method="post" class="d-inline"><input type="hidden" name="id" th:value="${service.id}"><button type="submit" class="btn btn-sm btn-outline-warning" th:title="${service.active ? 'Desactivar' : 'Activar'}"><i th:class="${service.active ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'}"></i></button></form>
+                                    <form th:action="/admin/services/delete" method="post" class="d-inline" onsubmit="return confirm('¿Eliminar este servicio? Esta acción no se puede deshacer.');"><input type="hidden" name="id" th:value="${service.id}"><button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="fa-solid fa-trash"></i></button></form>
                                 </td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(services)}"><td colspan="7" class="text-center text-muted py-4">No hay servicios en la base de datos. Agrega el primero desde el formulario.</td></tr>
@@ -203,8 +203,8 @@
                                 <td th:text="${review.comment}">Comentario</td>
                                 <td><span class="badge" th:classappend="${review.status == 'APROBADA' ? ' bg-success' : ' bg-warning text-dark'}" th:text="${review.status}">PENDIENTE</span></td>
                                 <td class="text-nowrap">
-                                    <form th:if="${review.status != 'APROBADA'}" action="/admin/reviews/approve" method="post" class="d-inline"><input type="hidden" name="id" th:value="${review.id}"><button class="btn btn-sm btn-outline-success" type="submit" title="Aprobar"><i class="fa-solid fa-check"></i></button></form>
-                                    <form action="/admin/reviews/delete" method="post" class="d-inline"><input type="hidden" name="id" th:value="${review.id}"><button class="btn btn-sm btn-outline-danger" type="submit" title="Eliminar"><i class="fa-solid fa-trash"></i></button></form>
+                                    <form th:if="${review.status != 'APROBADA'}" th:action="/admin/reviews/approve" method="post" class="d-inline"><input type="hidden" name="id" th:value="${review.id}"><button class="btn btn-sm btn-outline-success" type="submit" title="Aprobar"><i class="fa-solid fa-check"></i></button></form>
+                                    <form th:action="/admin/reviews/delete" method="post" class="d-inline"><input type="hidden" name="id" th:value="${review.id}"><button class="btn btn-sm btn-outline-danger" type="submit" title="Eliminar"><i class="fa-solid fa-trash"></i></button></form>
                                 </td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(reviews)}"><td colspan="6" class="text-center text-muted py-4">Todavía no hay reseñas enviadas.</td></tr>

@@ -14,6 +14,7 @@ import java.time.LocalDate;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -59,7 +60,7 @@ class SistemaSpaApplicationTests {
 	void validCredentialsOpenDashboard() throws Exception {
 		MockHttpSession initialSession = new MockHttpSession();
 		String initialSessionId = initialSession.getId();
-		HttpSession session = mockMvc.perform(post("/admin/login")
+		HttpSession session = mockMvc.perform(post("/admin/login").with(csrf())
 				.session(initialSession)
 				.param("username", "admin")
 				.param("password", "1234"))
@@ -77,7 +78,7 @@ class SistemaSpaApplicationTests {
 		SpaService service = serviceRepository.save(new SpaService("Servicio protegido", "Prueba",
 				"No debe eliminarse sin login", 30, new BigDecimal("10.00"), "https://example.com/protected.jpg"));
 
-		mockMvc.perform(post("/admin/services/delete").param("id", service.getId().toString()))
+		mockMvc.perform(post("/admin/services/delete").with(csrf()).param("id", service.getId().toString()))
 				.andExpect(status().is3xxRedirection())
 				.andExpect(redirectedUrl("/admin/login"));
 
@@ -85,13 +86,19 @@ class SistemaSpaApplicationTests {
 	}
 
 	@Test
+	void postWithoutCsrfTokenIsRejected() throws Exception {
+		mockMvc.perform(post("/admin/login").param("username", "admin").param("password", "1234"))
+				.andExpect(status().isForbidden());
+	}
+
+	@Test
 	void adminCanCreateServiceFromPortal() throws Exception {
-		HttpSession session = mockMvc.perform(post("/admin/login")
+		HttpSession session = mockMvc.perform(post("/admin/login").with(csrf())
 				.param("username", "admin")
 				.param("password", "1234"))
 				.andReturn().getRequest().getSession();
 
-		mockMvc.perform(post("/admin/services/save")
+		mockMvc.perform(post("/admin/services/save").with(csrf())
 				.session((org.springframework.mock.web.MockHttpSession) session)
 				.param("name", "Servicio de prueba")
 				.param("category", "Bienestar")
@@ -109,11 +116,11 @@ class SistemaSpaApplicationTests {
 
 	@Test
 	void adminCanCreateBranchFromPortal() throws Exception {
-		HttpSession session = mockMvc.perform(post("/admin/login")
+		HttpSession session = mockMvc.perform(post("/admin/login").with(csrf())
 				.param("username", "admin").param("password", "1234"))
 				.andReturn().getRequest().getSession();
 
-		mockMvc.perform(post("/admin/branches/save")
+		mockMvc.perform(post("/admin/branches/save").with(csrf())
 				.session((org.springframework.mock.web.MockHttpSession) session)
 				.param("name", "Sede de prueba").param("sector", "Prueba")
 				.param("address", "Dirección de prueba").param("openingHours", "Lun - Vie: 09h00 - 18h00")
@@ -148,7 +155,7 @@ class SistemaSpaApplicationTests {
 		SpaService service = serviceRepository.save(new SpaService("Servicio seis", "Prueba", "Servicio de prueba", 60, new BigDecimal("15.00"), "https://example.com/service-six.jpg"));
 		Masseuse masseuse = masseuseRepository.save(new Masseuse("Masajista seis", "Masoterapia", "0999999997", "seis@example.com"));
 
-		mockMvc.perform(post("/reservas/confirmar")
+		mockMvc.perform(post("/reservas/confirmar").with(csrf())
 				.param("servicioId", service.getId().toString())
 				.param("sucursalId", "1")
 				.param("masajistaId", masseuse.getId().toString())
@@ -173,7 +180,7 @@ class SistemaSpaApplicationTests {
 		Masseuse masseuse = masseuseRepository.findByActiveTrueOrderByNameAsc().get(0);
 		LocalDate date = LocalDate.now().plusWeeks(2).with(java.time.DayOfWeek.MONDAY);
 
-		mockMvc.perform(post("/reservas/confirmar")
+		mockMvc.perform(post("/reservas/confirmar").with(csrf())
 				.param("servicioId", service.getId().toString())
 				.param("sucursalId", branch.getId().toString())
 				.param("masajistaId", masseuse.getId().toString())
@@ -199,7 +206,7 @@ class SistemaSpaApplicationTests {
 		reservationRepository.save(new Reservation(existingService.getId(), branch.getId().intValue(), masseuse.getId(),
 				"Cliente existente", "0000000012", "0999999912", "existente@example.com", date, "09:00"));
 
-		mockMvc.perform(post("/reservas/confirmar")
+		mockMvc.perform(post("/reservas/confirmar").with(csrf())
 				.param("servicioId", requestedService.getId().toString())
 				.param("sucursalId", branch.getId().toString())
 				.param("masajistaId", masseuse.getId().toString())
@@ -221,7 +228,7 @@ class SistemaSpaApplicationTests {
 		Masseuse masseuse = masseuseRepository.findByActiveTrueOrderByNameAsc().get(0);
 		LocalDate date = LocalDate.now().plusWeeks(4).with(java.time.DayOfWeek.MONDAY);
 
-		mockMvc.perform(post("/reservas/confirmar")
+		mockMvc.perform(post("/reservas/confirmar").with(csrf())
 				.param("servicioId", service.getId().toString())
 				.param("sucursalId", branch.getId().toString())
 				.param("masajistaId", masseuse.getId().toString())
@@ -240,11 +247,11 @@ class SistemaSpaApplicationTests {
 		SpaService service = serviceRepository.save(new SpaService("Servicio cita", "Prueba", "Servicio de prueba", 30, new BigDecimal("10.00"), "https://example.com/test.jpg"));
 		Masseuse masseuse = masseuseRepository.save(new Masseuse("Masajista de prueba", "Masoterapia", "0999999998", "masajista@example.com"));
 		Reservation reservation = reservationRepository.save(new Reservation(service.getId(), 1, masseuse.getId(), "Cliente prueba", "0000000000", "0999999999", "cliente@example.com", LocalDate.now().plusDays(1), "09:00"));
-		HttpSession session = mockMvc.perform(post("/admin/login")
+		HttpSession session = mockMvc.perform(post("/admin/login").with(csrf())
 				.param("username", "admin").param("password", "1234"))
 				.andReturn().getRequest().getSession();
 
-		mockMvc.perform(post("/admin/reservations/status")
+		mockMvc.perform(post("/admin/reservations/status").with(csrf())
 				.session((org.springframework.mock.web.MockHttpSession) session)
 				.param("id", reservation.getId().toString()).param("status", "CONFIRMADA"))
 				.andExpect(status().is3xxRedirection());

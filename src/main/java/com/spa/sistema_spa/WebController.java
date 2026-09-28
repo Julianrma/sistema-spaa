@@ -22,12 +22,13 @@ public class WebController {
     private final MasseuseRepository masseuseRepository;
     private final ReservationBookingService reservationBookingService;
     private final AdminCredentials adminCredentials;
+    private final LoginAttemptService loginAttemptService;
 
     public WebController(SpaServiceRepository serviceRepository, ReservationRepository reservationRepository,
                          ReviewRepository reviewRepository,
                          BranchRepository branchRepository, MasseuseRepository masseuseRepository,
                          ReservationBookingService reservationBookingService,
-                         AdminCredentials adminCredentials) {
+                         AdminCredentials adminCredentials, LoginAttemptService loginAttemptService) {
         this.serviceRepository = serviceRepository;
         this.reservationRepository = reservationRepository;
         this.reviewRepository = reviewRepository;
@@ -35,6 +36,7 @@ public class WebController {
         this.masseuseRepository = masseuseRepository;
         this.reservationBookingService = reservationBookingService;
         this.adminCredentials = adminCredentials;
+        this.loginAttemptService = loginAttemptService;
     }
 
     @GetMapping("/")
@@ -90,13 +92,22 @@ public class WebController {
             model.addAttribute("error", "El acceso administrativo no está configurado. Define SPA_ADMIN_USERNAME y SPA_ADMIN_PASSWORD.");
             model.addAttribute("loginDisabled", true);
         }
+        model.addAttribute("loginBlocked", false);
         return "admin-login";
     }
 
     @PostMapping("/admin/login")
     public String authenticate(@RequestParam String username, @RequestParam String password,
                                HttpServletRequest request, Model model) {
+        String clientAddress = request.getRemoteAddr();
+        if (loginAttemptService.isBlocked(clientAddress)) {
+            model.addAttribute("error", "Demasiados intentos. Espera 15 minutos antes de volver a intentar.");
+            model.addAttribute("loginDisabled", false);
+            model.addAttribute("loginBlocked", true);
+            return "admin-login";
+        }
         if (adminCredentials.matches(username, password)) {
+            loginAttemptService.reset(clientAddress);
             HttpSession existingSession = request.getSession(false);
             if (existingSession != null) {
                 existingSession.invalidate();
@@ -104,10 +115,12 @@ public class WebController {
             request.getSession(true).setAttribute("adminAuthenticated", true);
             return "redirect:/admin/dashboard";
         }
+        loginAttemptService.recordFailure(clientAddress);
         model.addAttribute("error", adminCredentials.isConfigured()
                 ? "Usuario o contraseña incorrectos."
                 : "El acceso administrativo no está configurado. Define SPA_ADMIN_USERNAME y SPA_ADMIN_PASSWORD.");
         model.addAttribute("loginDisabled", !adminCredentials.isConfigured());
+        model.addAttribute("loginBlocked", loginAttemptService.isBlocked(clientAddress));
         return "admin-login";
     }
 
