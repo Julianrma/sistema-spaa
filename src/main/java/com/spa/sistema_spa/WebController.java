@@ -6,10 +6,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.servlet.http.HttpSession;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.ArrayList;
-import java.util.stream.Collectors;
 import org.springframework.ui.Model;
 
 @Controller
@@ -20,18 +19,21 @@ public class WebController {
     private final ReviewRepository reviewRepository;
     private final BranchRepository branchRepository;
     private final MasseuseRepository masseuseRepository;
+    private final ReservationBookingService reservationBookingService;
     private final String adminUsername;
     private final String adminPassword;
 
     public WebController(SpaServiceRepository serviceRepository, ReservationRepository reservationRepository,
                          ReviewRepository reviewRepository,
                          BranchRepository branchRepository, MasseuseRepository masseuseRepository,
+                         ReservationBookingService reservationBookingService,
                          org.springframework.core.env.Environment environment) {
         this.serviceRepository = serviceRepository;
         this.reservationRepository = reservationRepository;
         this.reviewRepository = reviewRepository;
         this.branchRepository = branchRepository;
         this.masseuseRepository = masseuseRepository;
+        this.reservationBookingService = reservationBookingService;
         this.adminUsername = environment.getProperty("spa.admin.username", "admin");
         this.adminPassword = environment.getProperty("spa.admin.password", "1234");
     }
@@ -57,15 +59,7 @@ public class WebController {
                           @RequestParam(required = false) Long masajistaId,
                           @RequestParam(required = false) Long servicioId,
                           @RequestParam(required = false) String fecha, Model model) {
-        model.addAttribute("services", serviceRepository.findByActiveTrueOrderByIdAsc());
-        model.addAttribute("branches", branchRepository.findByActiveTrueOrderByIdAsc());
-        model.addAttribute("masseuses", masseuseRepository.findByActiveTrueOrderByNameAsc());
-        LocalDate selectedDate = fecha == null || fecha.isBlank() ? null : LocalDate.parse(fecha);
-        model.addAttribute("availableSlots", availableSlots(masajistaId, selectedDate));
-        model.addAttribute("selectedBranchId", sucursalId);
-        model.addAttribute("selectedMasseuseId", masajistaId);
-        model.addAttribute("selectedServiceId", servicioId);
-        model.addAttribute("selectedDate", fecha);
+        populateBookingModel(model, sucursalId, masajistaId, servicioId, fecha);
         return "agendar";
     }
 
@@ -328,26 +322,17 @@ public class WebController {
                                      @RequestParam String clienteNombre, @RequestParam String clienteCedula,
                                      @RequestParam String clienteTelefono, @RequestParam String clienteEmail,
                                      Model model) {
-        LocalDate reservationDate = LocalDate.parse(fecha);
-        boolean validSlot = availableSlotValues().contains(horaSeleccionada);
-        boolean occupied = reservationRepository.findByMasseuseIdAndReservationDateAndStatusNot(masajistaId, reservationDate, "CANCELADA")
-                .stream().anyMatch(reservation -> reservation.getReservationTime().equals(horaSeleccionada));
-        if (reservationDate.isBefore(LocalDate.now()) || !validSlot || occupied) {
-            model.addAttribute("error", occupied ? "Ese horario ya está ocupado para la masajista elegida."
-                : (!validSlot ? "Selecciona una hora entre las 09:00 y las 18:00." : "No puedes reservar una fecha pasada."));
-        } else {
-            reservationRepository.save(new Reservation(servicioId, sucursalId, masajistaId, clienteNombre, clienteCedula,
-                    clienteTelefono, clienteEmail, reservationDate, horaSeleccionada));
-            model.addAttribute("confirmation", "Tu cita fue registrada. Te contactaremos para confirmarla.");
-        }
-        model.addAttribute("services", serviceRepository.findByActiveTrueOrderByIdAsc());
-        model.addAttribute("branches", branchRepository.findByActiveTrueOrderByIdAsc());
-        model.addAttribute("masseuses", masseuseRepository.findByActiveTrueOrderByNameAsc());
-        model.addAttribute("availableSlots", availableSlots(masajistaId, reservationDate));
-        model.addAttribute("selectedBranchId", sucursalId);
-        model.addAttribute("selectedMasseuseId", masajistaId);
-        model.addAttribute("selectedServiceId", servicioId);
-        model.addAttribute("selectedDate", fecha);
+        LocalDate reservationDate = parseDate(fecha);
+        ReservationBookingService.BookingResult result = reservationBookingService.book(servicioId, sucursalId,
+            masajistaId, reservationDate, horaSeleccionada, clienteNombre, clienteCedula,
+            clienteTelefono, clienteEmail);
+        model.addAttribute(result.successful() ? "confirmation" : "error", result.message());
+        populateBookingModel(model, sucursalId, masajistaId, servicioId, fecha);
+        model.addAttribute("selectedTime", horaSeleccionada);
+        model.addAttribute("clienteNombre", clienteNombre);
+        model.addAttribute("clienteCedula", clienteCedula);
+        model.addAttribute("clienteTelefono", clienteTelefono);
+        model.addAttribute("clienteEmail", clienteEmail);
         return "agendar";
     }
 
@@ -356,32 +341,32 @@ public class WebController {
                                @RequestParam(required = false) Long masajistaId,
                                @RequestParam(required = false) Long servicioId,
                                @RequestParam(required = false) String fecha, Model model) {
-        model.addAttribute("services", serviceRepository.findByActiveTrueOrderByIdAsc());
-        model.addAttribute("branches", branchRepository.findByActiveTrueOrderByIdAsc());
-        model.addAttribute("masseuses", masseuseRepository.findByActiveTrueOrderByNameAsc());
-        LocalDate selectedDate = fecha == null || fecha.isBlank() ? null : LocalDate.parse(fecha);
-        model.addAttribute("availableSlots", availableSlots(masajistaId, selectedDate));
-        model.addAttribute("selectedBranchId", sucursalId);
-        model.addAttribute("selectedMasseuseId", masajistaId);
-        model.addAttribute("selectedServiceId", servicioId);
-        model.addAttribute("selectedDate", fecha);
+        populateBookingModel(model, sucursalId, masajistaId, servicioId, fecha);
         return "agendar";
     }
 
-    private List<String> availableSlots(Long masseuseId, LocalDate date) {
-        List<String> slots = availableSlotValues();
-        if (masseuseId == null || date == null) return slots;
-        List<String> occupied = reservationRepository.findByMasseuseIdAndReservationDateAndStatusNot(masseuseId, date, "CANCELADA")
-                .stream().map(reservation -> reservation.getReservationTime()).collect(Collectors.toList());
-        slots.removeAll(occupied);
-        return slots;
+    private void populateBookingModel(Model model, Integer branchId, Long masseuseId, Long serviceId, String date) {
+        LocalDate selectedDate = parseDate(date);
+        model.addAttribute("services", serviceRepository.findByActiveTrueOrderByIdAsc());
+        model.addAttribute("branches", branchRepository.findByActiveTrueOrderByIdAsc());
+        model.addAttribute("masseuses", masseuseRepository.findByActiveTrueOrderByNameAsc());
+        model.addAttribute("availableSlots", reservationBookingService.availableSlots(
+                branchId, masseuseId, serviceId, selectedDate));
+        model.addAttribute("selectedBranchId", branchId);
+        model.addAttribute("selectedMasseuseId", masseuseId);
+        model.addAttribute("selectedServiceId", serviceId);
+        model.addAttribute("selectedDate", date);
+        model.addAttribute("today", LocalDate.now());
     }
 
-    private List<String> availableSlotValues() {
-        List<String> slots = new ArrayList<>();
-        for (int hour = 9; hour <= 18; hour++) {
-            slots.add(String.format("%02d:00", hour));
+    private LocalDate parseDate(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
         }
-        return slots;
+        try {
+            return LocalDate.parse(value);
+        } catch (DateTimeParseException exception) {
+            return null;
+        }
     }
 }

@@ -61,14 +61,14 @@
                         <!-- Paso 3: Fecha y Horarios Disponibles -->
                         <div class="mb-4">
                             <label class="form-label fw-bold"><i class="fa-regular fa-calendar text-success me-2"></i>Paso 4: Fecha y Turno Disponible</label>
-                            <input type="date" class="form-control mb-3" name="fecha" required th:value="${selectedDate}">
+                            <input type="date" class="form-control mb-3" name="fecha" required th:min="${today}" th:value="${selectedDate}">
                             
-                            <label class="form-label small text-muted d-block">Puedes reservar cualquier hora entre las 09:00 y las 18:00. Los horarios ocupados de la masajista elegida se ocultan:</label>
+                            <label class="form-label small text-muted d-block">Elige sucursal, servicio, masajista y fecha para ver los turnos disponibles. Cada turno toma en cuenta la duración del servicio, el horario de atención y las citas existentes.</label>
                             <div class="d-flex flex-wrap gap-2">
-                                <button th:each="slot : ${availableSlots}" type="button" class="btn btn-outline-success slot-btn" th:text="${slot}" th:data-slot="${slot}">09:00</button>
-                                <span class="text-muted small" th:if="${#lists.isEmpty(availableSlots)}">No hay horarios disponibles para esta selección.</span>
+                                <button th:each="slot : ${availableSlots}" type="button" class="btn btn-outline-success slot-btn" th:classappend="${slot == selectedTime ? ' active' : ''}" th:text="${slot}" th:data-slot="${slot}">09:00</button>
+                                <span class="text-muted small" th:if="${#lists.isEmpty(availableSlots)}">Selecciona todos los datos de la cita para consultar disponibilidad, o no quedan turnos para esta selección.</span>
                             </div>
-                            <input type="hidden" name="horaSeleccionada" th:value="${#lists.isEmpty(availableSlots) ? '' : availableSlots[0]}">
+                            <input type="hidden" name="horaSeleccionada" th:value="${selectedTime != null and #lists.contains(availableSlots, selectedTime) ? selectedTime : (#lists.isEmpty(availableSlots) ? '' : availableSlots[0])}">
                         </div>
 
                         <!-- Paso 4: Datos del Cliente -->
@@ -76,21 +76,21 @@
                             <label class="form-label fw-bold"><i class="fa-regular fa-user text-success me-2"></i>Paso 5: Datos de Contacto</label>
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <input type="text" class="form-control" placeholder="Nombre completo" name="clienteNombre" required>
+                                    <input type="text" class="form-control" placeholder="Nombre completo" name="clienteNombre" required th:value="${clienteNombre}">
                                 </div>
                                 <div class="col-md-6">
-                                    <input type="text" class="form-control" placeholder="Cédula de Identidad" name="clienteCedula" required>
+                                    <input type="text" class="form-control" placeholder="Cédula o identificación" name="clienteCedula" required th:value="${clienteCedula}">
                                 </div>
                                 <div class="col-md-6">
-                                    <input type="tel" class="form-control" placeholder="Teléfono de contacto" name="clienteTelefono" required>
+                                    <input type="tel" class="form-control" placeholder="Teléfono de contacto" name="clienteTelefono" required th:value="${clienteTelefono}">
                                 </div>
                                 <div class="col-md-6">
-                                    <input type="email" class="form-control" placeholder="Correo electrónico" name="clienteEmail" required>
+                                    <input type="email" class="form-control" placeholder="Correo electrónico" name="clienteEmail" required th:value="${clienteEmail}">
                                 </div>
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-success btn-lg w-100 fw-bold shadow-sm">
+                        <button type="submit" class="btn btn-success btn-lg w-100 fw-bold shadow-sm" th:disabled="${#lists.isEmpty(availableSlots)}">
                             <i class="fa-solid fa-circle-check me-2"></i>Confirmar y Agendar Turno
                         </button>
                     </form>
@@ -107,10 +107,11 @@
             const masseuse = document.querySelector('select[name="masajistaId"]').value;
             const service = document.querySelector('select[name="servicioId"]').value;
         const date = document.querySelector('input[name="fecha"]').value;
-            if (branch && masseuse && date) window.location.href = '/agendar/disponibilidad?sucursalId=' + branch + '&masajistaId=' + masseuse + '&servicioId=' + service + '&fecha=' + date;
+            if (branch && masseuse && service && date) window.location.href = '/agendar/disponibilidad?sucursalId=' + branch + '&masajistaId=' + masseuse + '&servicioId=' + service + '&fecha=' + date;
     }
     document.querySelector('select[name="sucursalId"]').addEventListener('change', refreshAvailability);
         document.querySelector('select[name="masajistaId"]').addEventListener('change', refreshAvailability);
+        document.querySelector('select[name="servicioId"]').addEventListener('change', refreshAvailability);
     document.querySelector('input[name="fecha"]').addEventListener('change', refreshAvailability);
     document.querySelectorAll('[data-slot]').forEach(function (button) {
         button.addEventListener('click', function () {
