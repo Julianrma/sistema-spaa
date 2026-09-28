@@ -1,13 +1,22 @@
 package com.spa.sistema_spa;
 
 import java.time.LocalDate;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 public class ReservationBookingService {
@@ -20,19 +29,28 @@ public class ReservationBookingService {
     private final ReservationRepository reservationRepository;
     private final BranchRepository branchRepository;
     private final MasseuseRepository masseuseRepository;
+    private final ReservationNotificationService notificationService;
+    private final SecureRandom secureRandom = new SecureRandom();
 
     public ReservationBookingService(SpaServiceRepository serviceRepository,
                                      ReservationRepository reservationRepository,
                                      BranchRepository branchRepository,
-                                     MasseuseRepository masseuseRepository) {
+                                     MasseuseRepository masseuseRepository,
+                                     ReservationNotificationService notificationService) {
         this.serviceRepository = serviceRepository;
         this.reservationRepository = reservationRepository;
         this.branchRepository = branchRepository;
         this.masseuseRepository = masseuseRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
     public List<String> availableSlots(Integer branchId, Long masseuseId, Long serviceId, LocalDate date) {
+        return availableSlots(branchId, masseuseId, serviceId, date, null);
+    }
+
+    private List<String> availableSlots(Integer branchId, Long masseuseId, Long serviceId, LocalDate date,
+                                        Long excludedReservationId) {
         if (branchId == null || masseuseId == null || serviceId == null || date == null
                 || date.isBefore(LocalDate.now())) {
             return List.of();
@@ -46,12 +64,15 @@ public class ReservationBookingService {
         }
 
         List<Reservation> existing = reservationRepository
-                .findByMasseuseIdAndReservationDateAndStatusNot(masseuseId, date, "CANCELADA");
+                .findByMasseuseIdAndReservationDateAndStatusNot(masseuseId, date, "CANCELADA")
+                .stream().filter(r -> excludedReservationId == null || !excludedReservationId.equals(r.getId()))
+                .toList();
+        if (service.getDurationMinutes() == null) return List.of();
         return BookingAvailability.availableSlots(branch.getOpeningHours(), date.getDayOfWeek(),
                 service.getDurationMinutes(), existing, serviceDurations(existing));
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public BookingResult book(Long serviceId, Integer branchId, Long masseuseId, LocalDate date,
                               String selectedTime, String customerName, String customerId,
                               String customerPhone, String customerEmail) {
@@ -80,9 +101,114 @@ public class ReservationBookingService {
             return BookingResult.failure("Ese turno ya no está disponible o no cabe dentro del horario de la sucursal.");
         }
 
-        reservationRepository.save(new Reservation(serviceId, branchId, masseuseId,
-                customerName.strip(), customerId.strip(), customerPhone.strip(), customerEmail.strip(), date, selectedTime));
-        return BookingResult.success("Tu cita fue registrada. Te contactaremos para confirmarla.");
+        String accessCode = generateAccessCode();
+        Reservation reservation = new Reservation(serviceId, branchId, masseuseId,
+                customerName.strip(), customerId.strip(), customerPhone.strip(), customerEmail.strip(), date, selectedTime);
+        reservation.setAccessCodeHash(hashAccessCode(accessCode));
+        reservationRepository.save(reservation);
+        String serviceName = service.getName();
+        String branchName = branch.getName();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                notificationService.sendConfirmation(reservation, accessCode, serviceName, branchName);
+            }
+        });
+        return BookingResult.success("Tu cita fue registrada. Guarda el código privado que aparece aquí para consultarla o cancelarla.", accessCode);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Reservation> findReservation(String email, String accessCode) {
+        if (email == null || accessCode == null || accessCode.isBlank()) {
+            return Optional.empty();
+        }
+        return reservationRepository.findByAccessCodeHashAndCustomerEmailIgnoreCase(
+                hashAccessCode(accessCode.strip()), email.strip());
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public BookingResult cancel(String email, String accessCode) {
+        if (email == null || accessCode == null || accessCode.isBlank()) {
+            return BookingResult.failure("No encontramos una reserva con esos datos.");
+        }
+        Reservation reservation = reservationRepository.findForUpdateByAccessCode(
+                hashAccessCode(accessCode.strip()), email.strip()).orElse(null);
+        if (reservation == null) {
+            return BookingResult.failure("No encontramos una reserva con esos datos.");
+        }
+        if (!lockMasseuse(reservation)) return BookingResult.failure("La masajista ya no existe.");
+        if ("CANCELADA".equals(reservation.getStatus())) {
+            return BookingResult.success("La reserva ya estaba cancelada.", accessCode);
+        }
+        if (!validTransition(reservation.getStatus(), "CANCELADA")) {
+            return BookingResult.failure("Esta reserva ya no se puede cancelar porque su estado es "
+                    + reservation.getStatus() + ".");
+        }
+        reservation.setStatus("CANCELADA");
+        reservationRepository.save(reservation);
+        return BookingResult.success("La reserva fue cancelada.", accessCode);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public BookingResult changeStatus(Long id, String targetStatus) {
+        Reservation reservation = reservationRepository.findByIdForUpdate(id).orElse(null);
+        if (reservation == null) return BookingResult.failure("La reserva ya no existe.");
+        if (!lockMasseuse(reservation)) return BookingResult.failure("La masajista ya no existe.");
+        String current = reservation.getStatus();
+        if (!validTransition(current, targetStatus)) {
+            return BookingResult.failure("Transición de estado no permitida.");
+        }
+        if (current.equals(targetStatus)) return BookingResult.success("La reserva ya tiene ese estado.");
+        if ("CANCELADA".equals(current) && (reservation.getReservationTime() == null || !availableSlots(reservation.getBranchId(),
+                reservation.getMasseuseId(), reservation.getServiceId(), reservation.getReservationDate(),
+                reservation.getId()).contains(reservation.getReservationTime()))) {
+            return BookingResult.failure("No se puede reactivar: el turno está ocupado o ya no está disponible.");
+        }
+        reservation.setStatus(targetStatus);
+        reservationRepository.save(reservation);
+        return BookingResult.success("Estado actualizado.");
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public BookingResult delete(Long id) {
+        Reservation reservation = reservationRepository.findByIdForUpdate(id).orElse(null);
+        if (reservation == null) return BookingResult.success("La reserva ya no existe.");
+        if (!lockMasseuse(reservation)) return BookingResult.failure("La masajista ya no existe.");
+        reservationRepository.delete(reservation);
+        return BookingResult.success("Reserva eliminada.");
+    }
+
+    // Existing reservations: lock their row first, then the shared agenda owner.
+    // Creation locks only the agenda owner and never locks existing reservation rows.
+    private boolean lockMasseuse(Reservation reservation) {
+        return reservation.getMasseuseId() == null
+                || masseuseRepository.findByIdForUpdate(reservation.getMasseuseId()).isPresent();
+    }
+
+    private boolean validTransition(String current, String target) {
+        if (current == null || target == null) return false;
+        return switch (current) {
+            case "PENDIENTE", "CONFIRMADA" -> List.of("PENDIENTE", "CONFIRMADA", "COMPLETADA", "CANCELADA").contains(target);
+            case "CANCELADA" -> List.of("CANCELADA", "PENDIENTE", "CONFIRMADA").contains(target);
+            case "COMPLETADA" -> "COMPLETADA".equals(target);
+            default -> false;
+        };
+    }
+
+    private String generateAccessCode() {
+        byte[] token = new byte[32];
+        secureRandom.nextBytes(token);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(token);
+    }
+
+    private String hashAccessCode(String accessCode) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(accessCode.getBytes(StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is required by the Java runtime", exception);
+        }
     }
 
     private Map<Long, Integer> serviceDurations(List<Reservation> reservations) {
@@ -103,13 +229,17 @@ public class ReservationBookingService {
                 && EMAIL_PATTERN.matcher(email.strip()).matches();
     }
 
-    public record BookingResult(boolean successful, String message) {
+    public record BookingResult(boolean successful, String message, String accessCode) {
         private static BookingResult success(String message) {
-            return new BookingResult(true, message);
+            return success(message, null);
+        }
+
+        private static BookingResult success(String message, String accessCode) {
+            return new BookingResult(true, message, accessCode);
         }
 
         private static BookingResult failure(String message) {
-            return new BookingResult(false, message);
+            return new BookingResult(false, message, null);
         }
     }
 }

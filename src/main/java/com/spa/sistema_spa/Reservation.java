@@ -51,6 +51,8 @@ public class Reservation {
     private String reservationTime;
     @Column(nullable = false)
     private String status = "PENDIENTE";
+    @Column(name = "access_code_hash", length = 64)
+    private String accessCodeHash;
 
     protected Reservation() {
     }
@@ -79,5 +81,7 @@ public class Reservation {
     public LocalDate getReservationDate() { return reservationDate; }
     public String getReservationTime() { return reservationTime; }
     public String getStatus() { return status; }
+    public String getAccessCodeHash() { return accessCodeHash; }
+    public void setAccessCodeHash(String accessCodeHash) { this.accessCodeHash = accessCodeHash; }
     public void setStatus(String status) { this.status = status; }
 }

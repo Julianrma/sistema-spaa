@@ -196,11 +196,10 @@ public class WebController {
     @PostMapping("/admin/reservations/status")
     public String updateReservationStatus(@RequestParam Long id, @RequestParam String status, HttpSession session) {
         if (!isAdmin(session)) return "redirect:/admin/login";
-        if (List.of("PENDIENTE", "CONFIRMADA", "COMPLETADA", "CANCELADA").contains(status)) {
-            reservationRepository.findById(id).ifPresent(reservation -> {
-                reservation.setStatus(status);
-                reservationRepository.save(reservation);
-            });
+        var result = reservationBookingService.changeStatus(id, status);
+        if (!result.successful()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT, result.message());
         }
         return "redirect:/admin/reservations";
     }
@@ -208,7 +207,11 @@ public class WebController {
     @PostMapping("/admin/reservations/delete")
     public String deleteReservation(@RequestParam Long id, HttpSession session) {
         if (!isAdmin(session)) return "redirect:/admin/login";
-        reservationRepository.deleteById(id);
+        var result = reservationBookingService.delete(id);
+        if (!result.successful()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT, result.message());
+        }
         return "redirect:/admin/reservations";
     }
 
@@ -361,6 +364,9 @@ public class WebController {
             masajistaId, reservationDate, horaSeleccionada, clienteNombre, clienteCedula,
             clienteTelefono, clienteEmail);
         model.addAttribute(result.successful() ? "confirmation" : "error", result.message());
+        if (result.successful()) {
+            model.addAttribute("reservationAccessCode", result.accessCode());
+        }
         populateBookingModel(model, sucursalId, masajistaId, servicioId, fecha);
         model.addAttribute("selectedTime", horaSeleccionada);
         model.addAttribute("clienteNombre", clienteNombre);
@@ -368,6 +374,49 @@ public class WebController {
         model.addAttribute("clienteTelefono", clienteTelefono);
         model.addAttribute("clienteEmail", clienteEmail);
         return "agendar";
+    }
+
+    @GetMapping("/reservas/consultar")
+    public String reservationLookup(Model model) {
+        model.addAttribute("reservationLookup", true);
+        return "reservation-lookup";
+    }
+
+    @PostMapping("/reservas/consultar")
+    public String lookupReservation(@RequestParam String email, @RequestParam String accessCode, Model model) {
+        Reservation reservation = reservationBookingService.findReservation(email, accessCode).orElse(null);
+        model.addAttribute("reservationLookup", true);
+        model.addAttribute("lookupEmail", email);
+        model.addAttribute("accessCode", accessCode);
+        if (reservation == null) {
+            model.addAttribute("error", "No encontramos una reserva con esos datos.");
+        } else {
+            model.addAttribute("reservation", reservation);
+            model.addAttribute("serviceName", serviceRepository.findById(reservation.getServiceId())
+                    .map(SpaService::getName).orElse("Servicio no disponible"));
+            model.addAttribute("branchName", branchRepository.findById(reservation.getBranchId().longValue())
+                    .map(Branch::getName).orElse("Sucursal no disponible"));
+        }
+        return "reservation-lookup";
+    }
+
+    @PostMapping("/reservas/cancelar")
+    public String cancelReservation(@RequestParam String email, @RequestParam String accessCode, Model model) {
+        ReservationBookingService.BookingResult result = reservationBookingService.cancel(email, accessCode);
+        model.addAttribute(result.successful() ? "confirmation" : "error", result.message());
+        model.addAttribute("reservationLookup", true);
+        model.addAttribute("lookupEmail", email);
+        model.addAttribute("accessCode", accessCode);
+        if (result.successful()) {
+            reservationBookingService.findReservation(email, accessCode).ifPresent(reservation -> {
+                model.addAttribute("reservation", reservation);
+                model.addAttribute("serviceName", serviceRepository.findById(reservation.getServiceId())
+                        .map(SpaService::getName).orElse("Servicio no disponible"));
+                model.addAttribute("branchName", branchRepository.findById(reservation.getBranchId().longValue())
+                        .map(Branch::getName).orElse("Sucursal no disponible"));
+            });
+        }
+        return "reservation-lookup";
     }
 
     @GetMapping("/agendar/disponibilidad")
