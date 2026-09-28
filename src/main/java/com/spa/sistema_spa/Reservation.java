@@ -6,6 +6,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Column;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import java.time.LocalDate;
 
 @Entity
@@ -21,6 +25,18 @@ public class Reservation {
     private Integer branchId;
     @Column(name = "masseuse_id")
     private Long masseuseId;
+        @ManyToOne(fetch = FetchType.LAZY, optional = false)
+        @JoinColumn(name = "service_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_reservations_service"))
+        private SpaService service;
+        @ManyToOne(fetch = FetchType.LAZY, optional = false)
+        @JoinColumn(name = "branch_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_reservations_branch"))
+        private Branch branch;
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "masseuse_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_reservations_masseuse"))
+        private Masseuse masseuse;
     @Column(name = "customer_name", nullable = false)
     private String customerName;
     @Column(name = "customer_id_number", nullable = false)

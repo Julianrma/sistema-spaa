@@ -176,7 +176,10 @@ public class WebController {
     @PostMapping("/admin/branches/delete")
     public String deleteBranch(@RequestParam Long id, HttpSession session) {
         if (!isAdmin(session)) return "redirect:/admin/login";
-        branchRepository.deleteById(id);
+        branchRepository.findById(id).ifPresent(branch -> {
+            branch.setActive(false);
+            branchRepository.save(branch);
+        });
         return "redirect:/admin/branches";
     }
 
@@ -273,7 +276,10 @@ public class WebController {
     @PostMapping("/admin/masseuses/delete")
     public String deleteMasseuse(@RequestParam Long id, HttpSession session) {
         if (!isAdmin(session)) return "redirect:/admin/login";
-        masseuseRepository.deleteById(id);
+        masseuseRepository.findById(id).ifPresent(masseuse -> {
+            masseuse.setActive(false);
+            masseuseRepository.save(masseuse);
+        });
         return "redirect:/admin/masseuses";
     }
 
@@ -308,7 +314,10 @@ public class WebController {
     @PostMapping("/admin/services/delete")
     public String deleteService(@RequestParam Long id, HttpSession session) {
         if (!isAdmin(session)) return "redirect:/admin/login";
-        serviceRepository.deleteById(id);
+        serviceRepository.findById(id).ifPresent(service -> {
+            service.setActive(false);
+            serviceRepository.save(service);
+        });
         return "redirect:/admin/dashboard";
     }
 
