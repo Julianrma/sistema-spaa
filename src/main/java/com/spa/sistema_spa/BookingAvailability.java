@@ -5,9 +5,11 @@ import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -15,7 +17,9 @@ public final class BookingAvailability {
 
     private static final int SLOT_INTERVAL_MINUTES = 30;
     private static final int DEFAULT_EXISTING_SERVICE_MINUTES = 60;
-    private static final DateTimeFormatter SLOT_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+    private static final int MINUTES_PER_DAY = 24 * 60;
+    private static final DateTimeFormatter SLOT_FORMAT = DateTimeFormatter.ofPattern("HH:mm")
+            .withResolverStyle(ResolverStyle.STRICT);
     private static final Pattern HOURS_PATTERN = Pattern.compile(
             "^\\s*(.*?)\\s*:\\s*(\\d{1,2})h(\\d{2})\\s*-\\s*(\\d{1,2})h(\\d{2})\\s*$",
             Pattern.CASE_INSENSITIVE);
@@ -30,37 +34,55 @@ public final class BookingAvailability {
                                                int durationMinutes, List<Reservation> reservations,
                                                Map<Long, Integer> serviceDurations) {
         Schedule schedule = parse(openingHours);
-        if (schedule == null || !schedule.openDays().contains(day) || durationMinutes <= 0) {
+        if (schedule == null || day == null || !schedule.openDays().contains(day)
+                || durationMinutes <= 0 || reservations == null || serviceDurations == null) {
             return List.of();
         }
 
+        int openingMinute = schedule.opensAt().toSecondOfDay() / 60;
+        int closingMinute = schedule.closesAt().toSecondOfDay() / 60;
+        if (durationMinutes > closingMinute - openingMinute) {
+            return List.of();
+        }
+        // Linear minutes never wrap to the next day. Subtract only after validating duration.
+        int lastStart = closingMinute - durationMinutes;
         List<String> available = new ArrayList<>();
-        for (LocalTime start = schedule.opensAt();
-             !start.plusMinutes(durationMinutes).isAfter(schedule.closesAt());
-             start = start.plusMinutes(SLOT_INTERVAL_MINUTES)) {
-            LocalTime slotStart = start;
-            LocalTime slotEnd = slotStart.plusMinutes(durationMinutes);
+        for (int start = openingMinute; start <= lastStart; start += SLOT_INTERVAL_MINUTES) {
+            int slotStart = start;
+            int slotEnd = slotStart + durationMinutes;
             if (reservations.stream().noneMatch(reservation -> overlaps(
                 slotStart, slotEnd, reservation, serviceDurations))) {
-            available.add(slotStart.format(SLOT_FORMAT));
+                available.add(LocalTime.of(slotStart / 60, slotStart % 60).format(SLOT_FORMAT));
             }
         }
         return available;
     }
 
-    private static boolean overlaps(LocalTime candidateStart, LocalTime candidateEnd,
+    private static boolean overlaps(int candidateStart, int candidateEnd,
                                     Reservation reservation, Map<Long, Integer> serviceDurations) {
+        if (reservation == null) {
+            return true;
+        }
         if ("CANCELADA".equals(reservation.getStatus())) {
             return false;
         }
+        // Fail closed for malformed occupied intervals instead of advertising a potentially busy slot.
+        if (reservation.getReservationTime() == null || reservation.getServiceId() == null) {
+            return true;
+        }
         try {
-            LocalTime existingStart = LocalTime.parse(reservation.getReservationTime(), SLOT_FORMAT);
-            int existingDuration = serviceDurations.getOrDefault(
+            int existingStart = LocalTime.parse(reservation.getReservationTime(), SLOT_FORMAT).toSecondOfDay() / 60;
+            Integer existingDuration = serviceDurations.getOrDefault(
                     reservation.getServiceId(), DEFAULT_EXISTING_SERVICE_MINUTES);
-            LocalTime existingEnd = existingStart.plusMinutes(existingDuration);
-            return candidateStart.isBefore(existingEnd) && candidateEnd.isAfter(existingStart);
+            if (existingDuration == null || existingDuration <= 0
+                    || existingDuration > MINUTES_PER_DAY - existingStart) {
+                return true;
+            }
+            int existingEnd = existingStart + existingDuration;
+            // Half-open intervals allow one appointment to start exactly when another ends.
+            return candidateStart < existingEnd && candidateEnd > existingStart;
         } catch (DateTimeException exception) {
-            return false;
+            return true;
         }
     }
 
@@ -84,7 +106,9 @@ public final class BookingAvailability {
             if (!opensAt.isBefore(closesAt)) {
                 return null;
             }
-            return new Schedule(expandDays(dayOfWeek(days.group(1)), dayOfWeek(days.group(2))), opensAt, closesAt);
+            DayOfWeek first = dayOfWeek(days.group(1));
+            DayOfWeek last = days.group(2) == null ? first : dayOfWeek(days.group(2));
+            return new Schedule(expandDays(first, last), opensAt, closesAt);
         } catch (DateTimeException | IllegalArgumentException exception) {
             return null;
         }
@@ -103,7 +127,7 @@ public final class BookingAvailability {
 
     private static DayOfWeek dayOfWeek(String value) {
         String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "").toLowerCase();
+                .replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
         return switch (normalized) {
             case "lun" -> DayOfWeek.MONDAY;
             case "mar" -> DayOfWeek.TUESDAY;
