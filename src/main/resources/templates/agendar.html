@@ -29,16 +29,15 @@
                     <p class="small text-white-50 mb-0">Completa los 4 pasos para confirmar tu servicio de bienestar</p>
                 </div>
                 <div class="card-body p-4">
+                    <div th:if="${confirmation}" class="alert alert-success" role="alert"><i class="fa-solid fa-circle-check me-2"></i><span th:text="${confirmation}">Cita registrada.</span></div>
+                    <div th:if="${error}" class="alert alert-danger" role="alert"><i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${error}">No se pudo registrar la cita.</span></div>
                     <form action="/reservas/confirmar" method="POST">
                         <!-- Paso 1: Selección de Sucursal -->
                         <div class="mb-4">
                             <label class="form-label fw-bold"><i class="fa-solid fa-shop text-success me-2"></i>Paso 1: Selecciona la Sucursal</label>
                             <select class="form-select form-select-lg" name="sucursalId" required>
                                 <option value="" selected disabled>-- Elige la sede más conveniente --</option>
-                                <option value="1">Sede Norte 1 (Kennedy - San Jorge)</option>
-                                <option value="2">Sede Norte 2 (Samborondón - Km 2.5)</option>
-                                <option value="3">Sede Centro (Malecón y 9 de Octubre)</option>
-                                <option value="4">Sede Sur (Centenario - Rosa Borja)</option>
+                                <option th:each="branch : ${branches}" th:value="${branch.id}" th:selected="${branch.id == selectedBranchId}" th:text="${branch.name}">Sucursal</option>
                             </select>
                         </div>
 
@@ -47,34 +46,34 @@
                             <label class="form-label fw-bold"><i class="fa-solid fa-hand-holding-heart text-success me-2"></i>Paso 2: Tratamiento o Servicio</label>
                             <select class="form-select form-select-lg" name="servicioId" required>
                                 <option value="" selected disabled>-- Elige el servicio deseado --</option>
-                                <option value="1">Masaje Piedras Volcánicas (60 min) - $45.00</option>
-                                <option value="2">Limpieza Facial Profunda (45 min) - $35.00</option>
-                                <option value="3">Circuito Hidrotermal (90 min) - $60.00</option>
-                                <option value="4">Descontracturante Espalda (45 min) - $30.00</option>
+                                <option th:each="service : ${services}" th:value="${service.id}" th:selected="${service.id == selectedServiceId}" th:text="|${service.name} (${service.durationMinutes} min) - $${service.price}|">Servicio</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold"><i class="fa-solid fa-hands text-success me-2"></i>Paso 3: Elige tu masajista</label>
+                            <select class="form-select form-select-lg" name="masajistaId" required>
+                                <option value="" selected disabled>-- Elige una masajista --</option>
+                                <option th:each="masseuse : ${masseuses}" th:value="${masseuse.id}" th:selected="${masseuse.id == selectedMasseuseId}" th:text="|${masseuse.name} - ${masseuse.specialty}|">Masajista</option>
                             </select>
                         </div>
 
                         <!-- Paso 3: Fecha y Horarios Disponibles -->
                         <div class="mb-4">
-                            <label class="form-label fw-bold"><i class="fa-regular fa-calendar text-success me-2"></i>Paso 3: Fecha y Turno Disponible</label>
-                            <input type="date" class="form-control mb-3" name="fecha" required>
+                            <label class="form-label fw-bold"><i class="fa-regular fa-calendar text-success me-2"></i>Paso 4: Fecha y Turno Disponible</label>
+                            <input type="date" class="form-control mb-3" name="fecha" required th:value="${selectedDate}">
                             
-                            <label class="form-label small text-muted d-block">Horarios disponibles calculados en tiempo real según disponibilidad de cabinas:</label>
+                            <label class="form-label small text-muted d-block">Puedes reservar cualquier hora entre las 09:00 y las 18:00. Los horarios ocupados de la masajista elegida se ocultan:</label>
                             <div class="d-flex flex-wrap gap-2">
-                                <button type="button" class="btn btn-outline-success slot-btn">09:00 AM</button>
-                                <button type="button" class="btn btn-outline-success slot-btn active">10:30 AM</button>
-                                <button type="button" class="btn btn-secondary slot-btn disabled" title="Ocupado">12:00 PM</button>
-                                <button type="button" class="btn btn-outline-success slot-btn">02:30 PM</button>
-                                <button type="button" class="btn btn-outline-success slot-btn">04:00 PM</button>
-                                <button type="button" class="btn btn-outline-success slot-btn">05:30 PM</button>
-                                <button type="button" class="btn btn-outline-success slot-btn">07:00 PM</button>
+                                <button th:each="slot : ${availableSlots}" type="button" class="btn btn-outline-success slot-btn" th:text="${slot}" th:data-slot="${slot}">09:00</button>
+                                <span class="text-muted small" th:if="${#lists.isEmpty(availableSlots)}">No hay horarios disponibles para esta selección.</span>
                             </div>
-                            <input type="hidden" name="horaSeleccionada" value="10:30 AM">
+                            <input type="hidden" name="horaSeleccionada" th:value="${#lists.isEmpty(availableSlots) ? '' : availableSlots[0]}">
                         </div>
 
                         <!-- Paso 4: Datos del Cliente -->
                         <div class="mb-4 pt-3 border-top">
-                            <label class="form-label fw-bold"><i class="fa-regular fa-user text-success me-2"></i>Paso 4: Datos de Contacto</label>
+                            <label class="form-label fw-bold"><i class="fa-regular fa-user text-success me-2"></i>Paso 5: Datos de Contacto</label>
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <input type="text" class="form-control" placeholder="Nombre completo" name="clienteNombre" required>
@@ -102,4 +101,23 @@
 </div>
 
 </body>
+<script>
+    function refreshAvailability() {
+            const branch = document.querySelector('select[name="sucursalId"]').value;
+            const masseuse = document.querySelector('select[name="masajistaId"]').value;
+            const service = document.querySelector('select[name="servicioId"]').value;
+        const date = document.querySelector('input[name="fecha"]').value;
+            if (branch && masseuse && date) window.location.href = '/agendar/disponibilidad?sucursalId=' + branch + '&masajistaId=' + masseuse + '&servicioId=' + service + '&fecha=' + date;
+    }
+    document.querySelector('select[name="sucursalId"]').addEventListener('change', refreshAvailability);
+        document.querySelector('select[name="masajistaId"]').addEventListener('change', refreshAvailability);
+    document.querySelector('input[name="fecha"]').addEventListener('change', refreshAvailability);
+    document.querySelectorAll('[data-slot]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            document.querySelector('input[name="horaSeleccionada"]').value = button.dataset.slot;
+            document.querySelectorAll('[data-slot]').forEach(function (item) { item.classList.remove('active'); });
+            button.classList.add('active');
+        });
+    });
+</script>
 </html>

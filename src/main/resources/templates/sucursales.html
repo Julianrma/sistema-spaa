@@ -26,76 +26,34 @@
 
 <div class="container py-5">
     <div class="mb-4">
-        <h2 class="fw-bold text-dark">Nuestras 4 Sucursales</h2>
+        <h2 class="fw-bold text-dark">Nuestras sucursales</h2>
         <p class="text-muted">Encuentra la sede más cercana a tu ubicación y consulta las opiniones de nuestros clientes.</p>
     </div>
 
     <div class="row g-4">
         <!-- Columna Izquierda: Tarjetas de Sucursal -->
         <div class="col-lg-5">
-            <!-- Sede 1 -->
-            <div class="card branch-card active shadow-sm p-3 mb-3 border-start border-4 border-success" onclick="updateMap(-2.1709, -79.9005, 'Norte 1 - Kennedy')">
+            <div class="card branch-card shadow-sm p-3 mb-3 border-start border-4 border-success" th:each="branch, branchIndex : ${branches}" th:classappend="${branchIndex.index == 0 ? ' active' : ''}" th:data-lat="${branch.latitude}" th:data-lng="${branch.longitude}" th:data-name="${branch.name}">
                 <div class="d-flex justify-content-between align-items-start">
-                    <h5 class="fw-bold text-dark mb-1">1. Sede Norte 1 (Kennedy)</h5>
-                    <span class="badge bg-success">Sector Norte</span>
+                    <h5 class="fw-bold text-dark mb-1" th:text="${branch.name}">Sucursal</h5>
+                    <span class="badge bg-success" th:text="${branch.sector}">Sector</span>
                 </div>
-                <p class="small text-muted mb-2"><i class="fa-solid fa-location-dot text-danger me-1"></i>Av. San Jorge y Fco. Boloña</p>
-                <div class="small text-muted mb-2"><i class="fa-regular fa-clock me-1"></i>Lun - Sáb: 08h00 - 20h00</div>
+                <p class="small text-muted mb-2"><i class="fa-solid fa-location-dot text-danger me-1"></i><span th:text="${branch.address}">Dirección</span></p>
+                <div class="small text-muted mb-2"><i class="fa-regular fa-clock me-1"></i><span th:text="${branch.openingHours}">Horario</span></div>
                 <div class="d-flex justify-content-between align-items-center mt-2">
-                    <span class="text-warning small"><i class="fa-solid fa-star"></i> 4.8 (142 reseñas)</span>
-                    <a href="/agendar?sede=norte1" class="btn btn-sm btn-outline-success">Elegir esta sede</a>
+                    <span class="text-muted small"><i class="fa-regular fa-star me-1"></i>Opiniones verificadas en el portal</span>
+                    <a th:href="@{/agendar(sucursalId=${branch.id})}" class="btn btn-sm btn-outline-success">Elegir esta sede</a>
                 </div>
             </div>
-
-            <!-- Sede 2 -->
-            <div class="card branch-card shadow-sm p-3 mb-3 border-start border-4 border-primary" onclick="updateMap(-2.1450, -79.8650, 'Norte 2 - Samborondón')">
-                <div class="d-flex justify-content-between align-items-start">
-                    <h5 class="fw-bold text-dark mb-1">2. Sede Norte 2 (Samborondón)</h5>
-                    <span class="badge bg-primary">Alta Demanda</span>
-                </div>
-                <p class="small text-muted mb-2"><i class="fa-solid fa-location-dot text-danger me-1"></i>Km 2.5 Vía Samborondón</p>
-                <div class="small text-muted mb-2"><i class="fa-regular fa-clock me-1"></i>Mar - Dom: 09h00 - 21h00</div>
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                    <span class="text-warning small"><i class="fa-solid fa-star"></i> 4.9 (210 reseñas)</span>
-                    <a href="/agendar?sede=norte2" class="btn btn-sm btn-outline-success">Elegir esta sede</a>
-                </div>
-            </div>
-
-            <!-- Sede 3 -->
-            <div class="card branch-card shadow-sm p-3 mb-3 border-start border-4 border-secondary" onclick="updateMap(-2.1945, -79.8820, 'Centro - Malecón')">
-                <div class="d-flex justify-content-between align-items-start">
-                    <h5 class="fw-bold text-dark mb-1">3. Sede Centro (Malecón)</h5>
-                    <span class="badge bg-secondary">Sector Centro</span>
-                </div>
-                <p class="small text-muted mb-2"><i class="fa-solid fa-location-dot text-danger me-1"></i>Av. 9 de Octubre y Pedro Carbo</p>
-                <div class="small text-muted mb-2"><i class="fa-regular fa-clock me-1"></i>Lun - Vie: 08h30 - 19h30</div>
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                    <span class="text-warning small"><i class="fa-solid fa-star"></i> 4.6 (98 reseñas)</span>
-                    <a href="/agendar?sede=centro" class="btn btn-sm btn-outline-success">Elegir esta sede</a>
-                </div>
-            </div>
-
-            <!-- Sede 4 -->
-            <div class="card branch-card shadow-sm p-3 mb-3 border-start border-4 border-warning" onclick="updateMap(-2.2150, -79.8980, 'Sur - Centenario')">
-                <div class="d-flex justify-content-between align-items-start">
-                    <h5 class="fw-bold text-dark mb-1">4. Sede Sur (Centenario)</h5>
-                    <span class="badge bg-warning text-dark">Promociones</span>
-                </div>
-                <p class="small text-muted mb-2"><i class="fa-solid fa-location-dot text-danger me-1"></i>Rosa Borja de Ycaza</p>
-                <div class="small text-muted mb-2"><i class="fa-regular fa-clock me-1"></i>Lun - Sáb: 09h00 - 19h00</div>
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                    <span class="text-warning small"><i class="fa-solid fa-star"></i> 4.7 (84 reseñas)</span>
-                    <a href="/agendar?sede=sur" class="btn btn-sm btn-outline-success">Elegir esta sede</a>
-                </div>
-            </div>
+            <div class="alert alert-secondary" th:if="${#lists.isEmpty(branches)}">No hay sucursales activas disponibles.</div>
         </div>
 
         <!-- Columna Derecha: Mapa de Google Maps Embebido -->
         <div class="col-lg-7">
             <div class="map-container shadow-sm">
                 <!-- Iframe con vista de mapa dinámico centrado en Guayaquil -->
-                <iframe id="mapFrame" 
-                    src="https://maps.google.com/maps?q=-2.1709,-79.9005&z=14&output=embed" 
+                <iframe id="mapFrame"
+                    th:src="${#lists.isEmpty(branches) ? 'https://maps.google.com/maps?q=-2.1709,-79.9005&z=14&output=embed' : 'https://maps.google.com/maps?q=' + branches[0].latitude + ',' + branches[0].longitude + '&z=14&output=embed'}"
                     width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy">
                 </iframe>
             </div>
@@ -109,41 +67,33 @@
     <div class="mt-5 pt-4 border-top">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3 class="fw-bold">Reseñas y Experiencias de Clientes</h3>
-            <button class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#modalResena"><i class="fa-solid fa-pen me-1"></i>Escribir Reseña</button>
+            <a href="#form-resena" class="btn btn-sm btn-outline-dark"><i class="fa-solid fa-pen me-1"></i>Escribir Reseña</a>
         </div>
 
         <div class="row g-3">
-            <div class="col-md-4">
+            <div class="col-md-4" th:each="review : ${reviews}">
                 <div class="card shadow-sm p-3 h-100 bg-white">
-                    <div class="text-warning mb-2"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
-                    <p class="small text-muted fst-italic">"La sede de Samborondón es impecable. El masaje con piedras calientes me quitó todo el dolor de cuello. 100% recomendado."</p>
+                    <div class="text-warning mb-2"><i th:each="star : ${#numbers.sequence(1, review.rating)}" class="fa-solid fa-star"></i></div>
+                    <p class="small text-muted fst-italic" th:text="|&quot;${review.comment}&quot;|">Comentario</p>
                     <div class="d-flex justify-content-between align-items-center mt-auto small">
-                        <span class="fw-bold">Camila V.</span>
-                        <span class="badge bg-light text-secondary">Sede Norte 2</span>
+                        <span class="fw-bold" th:text="${review.customerName}">Cliente</span>
+                        <span class="badge bg-light text-secondary" th:text="|Sede ${review.branchId}|">Sede</span>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card shadow-sm p-3 h-100 bg-white">
-                    <div class="text-warning mb-2"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i></div>
-                    <p class="small text-muted fst-italic">"Muy buena atención en la sede Centro durante mi descanso de almuerzo. Puntuales y rápidos con la limpieza facial."</p>
-                    <div class="d-flex justify-content-between align-items-center mt-auto small">
-                        <span class="fw-bold">Roberto M.</span>
-                        <span class="badge bg-light text-secondary">Sede Centro</span>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card shadow-sm p-3 h-100 bg-white">
-                    <div class="text-warning mb-2"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
-                    <p class="small text-muted fst-italic">"Fui a la sucursal de Kennedy. Las instalaciones son muy cómodas y la terapeuta fue muy profesional en todo momento."</p>
-                    <div class="d-flex justify-content-between align-items-center mt-auto small">
-                        <span class="fw-bold">Estefanía R.</span>
-                        <span class="badge bg-light text-secondary">Sede Norte 1</span>
-                    </div>
-                </div>
-            </div>
+            <div class="col-12" th:if="${#lists.isEmpty(reviews)}"><div class="alert alert-secondary mb-0">Todavía no hay reseñas aprobadas.</div></div>
         </div>
+
+        <form id="form-resena" action="/resenas/save" method="post" class="bg-white border rounded p-4 mt-4">
+            <h5 class="fw-bold">Comparte tu experiencia</h5>
+            <div class="row g-3">
+                <div class="col-md-4"><label class="form-label">Nombre</label><input class="form-control" name="customerName" required></div>
+                <div class="col-md-4"><label class="form-label">Sucursal</label><select class="form-select" name="branchId" required><option th:each="branch : ${branches}" th:value="${branch.id}" th:text="${branch.name}">Sucursal</option></select></div>
+                <div class="col-md-4"><label class="form-label">Calificación</label><select class="form-select" name="rating" required><option value="5">5 - Excelente</option><option value="4">4 - Muy buena</option><option value="3">3 - Buena</option><option value="2">2 - Regular</option><option value="1">1 - Mala</option></select></div>
+                <div class="col-12"><label class="form-label">Comentario</label><textarea class="form-control" name="comment" rows="3" required maxlength="500"></textarea></div>
+                <div class="col-12"><button class="btn btn-dark" type="submit"><i class="fa-solid fa-paper-plane me-1"></i>Enviar reseña</button><span class="small text-muted ms-2">Será revisada antes de publicarse.</span></div>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -152,6 +102,13 @@
         const frame = document.getElementById('mapFrame');
         frame.src = `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
     }
+    document.querySelectorAll('.branch-card').forEach(function (branchCard) {
+        branchCard.addEventListener('click', function () {
+            updateMap(branchCard.dataset.lat, branchCard.dataset.lng, branchCard.dataset.name);
+            document.querySelectorAll('.branch-card').forEach(function (card) { card.classList.remove('active'); });
+            branchCard.classList.add('active');
+        });
+    });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

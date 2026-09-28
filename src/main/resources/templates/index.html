@@ -53,58 +53,19 @@
     </div>
 
     <div class="row g-4">
-        <!-- Servicio 1 -->
-        <div class="col-md-4">
+        <div class="col-md-6 col-lg-4" th:each="service : ${services}">
             <div class="card card-service h-100 shadow-sm">
-                <img src="https://images.unsplash.com/photo-1600334129128-685c5582fd35?auto=format&fit=crop&w=600&q=80" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Masaje Piedras">
+                <img th:src="${service.imageUrl}" class="card-img-top" style="height: 200px; object-fit: cover;" th:alt="${service.name}">
                 <div class="card-body d-flex flex-column">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="badge bg-primary-subtle text-primary fw-semibold">Masoterapia</span>
-                        <span class="fw-bold text-success fs-5">$45.00</span>
+                        <span class="badge bg-primary-subtle text-primary fw-semibold" th:text="${service.category}">Categoría</span>
+                        <span class="fw-bold text-success fs-5">$<span th:text="${service.price}">45.00</span></span>
                     </div>
-                    <h5 class="card-title fw-bold">Masaje Piedras Volcánicas</h5>
-                    <p class="card-text text-muted small flex-grow-1">Terapia geotermal profunda que alivia contracturas, activa la circulación y reduce el estrés crónico.</p>
+                    <h5 class="card-title fw-bold" th:text="${service.name}">Servicio</h5>
+                    <p class="card-text text-muted small flex-grow-1" th:text="${service.description}">Descripción del servicio.</p>
                     <div class="d-flex justify-content-between align-items-center text-muted small mt-3 pt-3 border-top">
-                        <span><i class="fa-regular fa-clock me-1"></i>60 minutos</span>
-                        <a href="/agendar?servicio=1" class="btn btn-sm btn-outline-success">Reservar</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Servicio 2 -->
-        <div class="col-md-4">
-            <div class="card card-service h-100 shadow-sm">
-                <img src="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=600&q=80" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Facial">
-                <div class="card-body d-flex flex-column">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="badge bg-info-subtle text-info fw-semibold">Cuidado Facial</span>
-                        <span class="fw-bold text-success fs-5">$35.00</span>
-                    </div>
-                    <h5 class="card-title fw-bold">Limpieza Facial Profunda</h5>
-                    <p class="card-text text-muted small flex-grow-1">Extracción de impurezas, vapor de ozono, mascarilla purificante y nutrición con sueros orgánicos.</p>
-                    <div class="d-flex justify-content-between align-items-center text-muted small mt-3 pt-3 border-top">
-                        <span><i class="fa-regular fa-clock me-1"></i>45 minutos</span>
-                        <a href="/agendar?servicio=2" class="btn btn-sm btn-outline-success">Reservar</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Servicio 3 -->
-        <div class="col-md-4">
-            <div class="card card-service h-100 shadow-sm">
-                <img src="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=600&q=80" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Hidroterapia">
-                <div class="card-body d-flex flex-column">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="badge bg-warning-subtle text-dark fw-semibold">Spa & Relax</span>
-                        <span class="fw-bold text-success fs-5">$60.00</span>
-                    </div>
-                    <h5 class="card-title fw-bold">Circuito Hidrotermal</h5>
-                    <p class="card-text text-muted small flex-grow-1">Inmersión en sauna finlandés, baño turco aromatizado y tina de hidromasaje regenerativa.</p>
-                    <div class="d-flex justify-content-between align-items-center text-muted small mt-3 pt-3 border-top">
-                        <span><i class="fa-regular fa-clock me-1"></i>90 minutos</span>
-                        <a href="/agendar?servicio=3" class="btn btn-sm btn-outline-success">Reservar</a>
+                        <span><i class="fa-regular fa-clock me-1"></i><span th:text="${service.durationMinutes}">60</span> minutos</span>
+                        <a th:href="@{/agendar(servicio=${service.id})}" class="btn btn-sm btn-outline-success">Reservar</a>
                     </div>
                 </div>
             </div>
