@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -39,7 +39,7 @@
                         <div class="small mt-1">Guárdalo ahora. Lo necesitarás junto con tu correo para consultar o cancelar la cita; no se volverá a mostrar.</div>
                     </div>
                     <div th:if="${error}" class="alert alert-danger" role="alert"><i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${error}">No se pudo registrar la cita.</span></div>
-                    <form th:action="/reservas/confirmar" method="POST">
+                    <form th:action="@{/reservas/confirmar}" method="POST">
                         <!-- Paso 1: Selección de Sucursal -->
                         <div class="mb-4">
                             <label class="form-label fw-bold"><i class="fa-solid fa-shop text-success me-2"></i>Paso 1: Selecciona la Sucursal</label>

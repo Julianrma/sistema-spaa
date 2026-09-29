@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -84,7 +84,7 @@
             <div class="col-12" th:if="${#lists.isEmpty(reviews)}"><div class="alert alert-secondary mb-0">Todavía no hay reseñas aprobadas.</div></div>
         </div>
 
-        <form id="form-resena" th:action="/resenas/save" method="post" class="bg-white border rounded p-4 mt-4">
+        <form id="form-resena" th:action="@{/resenas/save}" method="post" class="bg-white border rounded p-4 mt-4">
             <h5 class="fw-bold">Comparte tu experiencia</h5>
             <div class="row g-3">
                 <div class="col-md-4"><label class="form-label">Nombre</label><input class="form-control" name="customerName" required></div>
