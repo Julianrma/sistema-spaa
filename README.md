@@ -1,4 +1,4 @@
-# 🌿 Aura Spa
+# 🌿 SpaMoonBeauty
 
 <p align="center">
   Sistema web para la gestión integral de un spa, desarrollado con
@@ -6,14 +6,23 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white" alt="Java 21">
+  <img src="https://img.shields.io/badge/Spring%20Boot-4.1.1-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 4.1.1">
+  <img src="https://img.shields.io/badge/PostgreSQL-Database-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Maven-3.9.16-C71A36?logo=apachemaven&logoColor=white" alt="Maven">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License">
+</p>
+
+<p align="center">
   Reservas · Sucursales · Masajistas · Servicios · Reseñas · Administración · Analítica
 </p>
+
 
 ---
 
 ## 📖 Descripción
 
-**Aura Spa** es una aplicación web diseñada para gestionar las operaciones principales de un spa desde una única plataforma.
+**SpaMoonBeauty** es una aplicación web diseñada para gestionar las operaciones principales de un spa desde una única plataforma.
 
 El sistema permite a los clientes consultar sucursales, explorar servicios, seleccionar profesionales y agendar citas según la disponibilidad real de cada masajista.
 
@@ -25,7 +34,7 @@ Además, incorpora un portal administrativo para gestionar reservas, servicios, 
 
 ### Página principal
 
-![Página principal de Aura Spa](docs/images/aura-spa-inicio.png)
+![Página principal de SpaMoonBeauty](docs/images/aura-spa-inicio.png)
 
 ### Sistema de reservas
 
@@ -33,7 +42,7 @@ Además, incorpora un portal administrativo para gestionar reservas, servicios, 
 
 ### Sucursales
 
-![Sucursales de Aura Spa](docs/images/aura-spa-sucursales.png)
+![Sucursales de SpaMoonBeauty](docs/images/aura-spa-sucursales.png)
 
 ### Dashboard administrativo
 
@@ -158,7 +167,7 @@ Permite generar dinámicamente las páginas que utiliza el cliente y el administ
 
 ## 🗄️ Base de datos
 
-Aura Spa utiliza **PostgreSQL**.
+SpaMoonBeauty utiliza **PostgreSQL**.
 
 La configuración puede proporcionarse mediante variables de entorno:
 
@@ -184,7 +193,7 @@ La base contiene la información relacionada con:
 
 ### Requisitos
 
-Antes de ejecutar Aura Spa necesitas:
+Antes de ejecutar SpaMoonBeauty necesitas:
 
 - JDK 21
 - PostgreSQL
@@ -215,7 +224,7 @@ export DB_USERNAME=postgres
 export DB_PASSWORD=tu_clave_de_postgres
 ```
 
-### 3. Ejecutar Aura Spa
+### 3. Ejecutar SpaMoonBeauty
 
 En Linux:
 
@@ -284,7 +293,7 @@ Para realizar una compilación limpia:
 
 ## 🔒 Seguridad
 
-Aura Spa incorpora diferentes medidas de protección dentro de la aplicación:
+SpaMoonBeauty incorpora diferentes medidas de protección dentro de la aplicación:
 
 - Spring Security.
 - Protección CSRF.
@@ -298,7 +307,7 @@ Aura Spa incorpora diferentes medidas de protección dentro de la aplicación:
 
 ## 📌 Estado del proyecto
 
-Aura Spa se encuentra en desarrollo y ha sido construido como proyecto académico, aplicando conceptos de desarrollo web, arquitectura backend, persistencia de datos, seguridad y pruebas automatizadas.
+SpaMoonBeauty se encuentra en desarrollo y ha sido construido como proyecto académico, aplicando conceptos de desarrollo web, arquitectura backend, persistencia de datos, seguridad y pruebas automatizadas.
 
 ---
 
@@ -306,11 +315,11 @@ Aura Spa se encuentra en desarrollo y ha sido construido como proyecto académic
 
 **Julián Revelo**
 
-Desarrollo y documentación del proyecto **Aura Spa**.
+Desarrollo y documentación del proyecto **SpaMoonBeauty**.
 
 ---
 
 <p align="center">
-  🌿 <strong>Aura Spa</strong><br>
+  🌿 <strong>SpaMoonBeauty</strong><br>
   Gestión, reservas y administración en una sola plataforma.
 </p>

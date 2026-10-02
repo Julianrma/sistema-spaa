@@ -3,20 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sucursales y Ubicaciones - Aura Spa</title>
+    <title>Sucursales y Ubicaciones - SpaMoonBeauty</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .map-container { width: 100%; height: 520px; border-radius: 12px; overflow: hidden; border: 1px solid #dee2e6; }
-        .branch-card { cursor: pointer; transition: all 0.2s; }
-        .branch-card:hover, .branch-card.active { border-color: #198754 !important; background-color: #f0fdf4; }
-    </style>
+    <link rel="stylesheet" href="/css/spamoonbeauty.css">
 </head>
-<body class="bg-light">
+<body class="public-page">
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="/"><i class="fa-solid fa-spa text-success me-2"></i>AURA SPA</a>
+        <a class="navbar-brand fw-bold" href="/"><i class="fa-solid fa-spa text-success me-2"></i>SpaMoonBeauty</a>
         <div class="ms-auto">
             <a href="/" class="btn btn-outline-light btn-sm me-2">Inicio</a>
             <a href="/agendar" class="btn btn-success btn-sm">Agendar Cita</a>
@@ -24,16 +20,17 @@
     </div>
 </nav>
 
-<div class="container py-5">
-    <div class="mb-4">
-        <h2 class="fw-bold text-dark">Nuestras sucursales</h2>
+<div class="container page-shell">
+    <div class="page-intro" data-reveal>
+        <p class="text-uppercase small fw-bold text-success mb-2">Encuentra tu momento</p>
+        <h1 class="fw-bold">Nuestras sucursales</h1>
         <p class="text-muted">Encuentra la sede más cercana a tu ubicación y consulta las opiniones de nuestros clientes.</p>
     </div>
 
     <div class="row g-4">
         <!-- Columna Izquierda: Tarjetas de Sucursal -->
         <div class="col-lg-5">
-            <div class="card branch-card shadow-sm p-3 mb-3 border-start border-4 border-success" th:each="branch, branchIndex : ${branches}" th:classappend="${branchIndex.index == 0 ? ' active' : ''}" th:data-lat="${branch.latitude}" th:data-lng="${branch.longitude}" th:data-name="${branch.name}">
+            <div class="card branch-card shadow-sm p-3 mb-3 border-start border-4 border-success" th:each="branch, branchIndex : ${branches}" th:classappend="${branchIndex.index == 0 ? ' active' : ''}" th:data-lat="${branch.latitude}" th:data-lng="${branch.longitude}" th:data-name="${branch.name}" data-reveal>
                 <div class="d-flex justify-content-between align-items-start">
                     <h5 class="fw-bold text-dark mb-1" th:text="${branch.name}">Sucursal</h5>
                     <span class="badge bg-success" th:text="${branch.sector}">Sector</span>
@@ -49,22 +46,22 @@
         </div>
 
         <!-- Columna Derecha: Mapa de Google Maps Embebido -->
-        <div class="col-lg-7">
-            <div class="map-container shadow-sm">
+        <div class="col-lg-7" data-reveal data-reveal-delay="1">
+            <div class="map-container">
                 <!-- Iframe con vista de mapa dinámico centrado en Guayaquil -->
                 <iframe id="mapFrame"
                     th:src="${#lists.isEmpty(branches) ? 'https://maps.google.com/maps?q=-2.1709,-79.9005&z=14&output=embed' : 'https://maps.google.com/maps?q=' + branches[0].latitude + ',' + branches[0].longitude + '&z=14&output=embed'}"
                     width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy">
                 </iframe>
             </div>
-            <div class="bg-white p-3 rounded-bottom border border-top-0 small text-muted">
+            <div class="map-note p-3 rounded-bottom border border-top-0 small text-muted">
                 <i class="fa-solid fa-circle-info text-primary me-1"></i> Haz clic en cualquiera de las sucursales para actualizar la ubicación en el mapa.
             </div>
         </div>
     </div>
 
     <!-- Sección de Reseñas de Clientes -->
-    <div class="mt-5 pt-4 border-top">
+    <div class="review-section" data-reveal>
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3 class="fw-bold">Reseñas y Experiencias de Clientes</h3>
             <a href="#form-resena" class="btn btn-sm btn-outline-dark"><i class="fa-solid fa-pen me-1"></i>Escribir Reseña</a>
@@ -72,7 +69,7 @@
 
         <div class="row g-3">
             <div class="col-md-4" th:each="review : ${reviews}">
-                <div class="card shadow-sm p-3 h-100 bg-white">
+                <div class="card review-card">
                     <div class="text-warning mb-2"><i th:each="star : ${#numbers.sequence(1, review.rating)}" class="fa-solid fa-star"></i></div>
                     <p class="small text-muted fst-italic" th:text="|&quot;${review.comment}&quot;|">Comentario</p>
                     <div class="d-flex justify-content-between align-items-center mt-auto small">
@@ -84,7 +81,7 @@
             <div class="col-12" th:if="${#lists.isEmpty(reviews)}"><div class="alert alert-secondary mb-0">Todavía no hay reseñas aprobadas.</div></div>
         </div>
 
-        <form id="form-resena" th:action="@{/resenas/save}" method="post" class="bg-white border rounded p-4 mt-4">
+        <form id="form-resena" th:action="@{/resenas/save}" method="post" class="review-form border p-4 mt-4">
             <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
             <h5 class="fw-bold">Comparte tu experiencia</h5>
             <div class="row g-3">
@@ -112,5 +109,6 @@
     });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/spamoonbeauty-ui.js"></script>
 </body>
 </html>

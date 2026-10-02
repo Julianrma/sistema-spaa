@@ -29,7 +29,7 @@ public class ReservationNotificationService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
         message.setTo(reservation.getCustomerEmail());
-        message.setSubject("Confirmación de reserva - Aura Spa");
+        message.setSubject("Confirmación de reserva - SpaMoonBeauty");
         message.setText("Hola " + reservation.getCustomerName() + ",\n\n"
                 + "Registramos tu reserva en estado PENDIENTE.\n"
                 + "Servicio: " + serviceName + "\n"
@@ -37,7 +37,7 @@ public class ReservationNotificationService {
                 + "Fecha: " + reservation.getReservationDate() + "\n"
                 + "Hora: " + reservation.getReservationTime() + "\n\n"
                 + "Código privado para consultar o cancelar tu reserva: " + accessCode + "\n"
-                + "Guárdalo; no lo compartas con otras personas.\n\nAura Spa");
+                + "Guárdalo; no lo compartas con otras personas.\n\nSpaMoonBeauty");
         try {
             mailSender.send(message);
             return true;
