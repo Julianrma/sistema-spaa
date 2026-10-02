@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -38,6 +39,9 @@ class SistemaSpaApplicationTests {
 
 	@Autowired
 	private MasseuseRepository masseuseRepository;
+
+	@Autowired
+	private ReviewRepository reviewRepository;
 
 	@Test
 	void contextLoads() {
@@ -89,6 +93,24 @@ class SistemaSpaApplicationTests {
 	void postWithoutCsrfTokenIsRejected() throws Exception {
 		mockMvc.perform(post("/admin/login").param("username", "admin").param("password", "1234"))
 				.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void adminCanApproveReviewFromDashboard() throws Exception {
+		HttpSession session = mockMvc.perform(post("/admin/login").with(csrf())
+				.param("username", "admin")
+				.param("password", "1234"))
+				.andReturn().getRequest().getSession();
+
+		Review review = new Review("Cliente prueba", 1, 5, "Buen servicio");
+		reviewRepository.save(review);
+
+		mockMvc.perform(get("/admin/dashboard").session((org.springframework.mock.web.MockHttpSession) session))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("/admin/reviews/approve")))
+				.andExpect(content().string(containsString("name=\"id\"")))
+				.andExpect(content().string(containsString("_csrf")))
+				.andExpect(content().string(containsString("Aprobar")));
 	}
 
 	@Test

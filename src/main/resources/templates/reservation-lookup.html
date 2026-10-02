@@ -24,6 +24,7 @@
                     <div th:if="${confirmation}" class="alert alert-success" th:text="${confirmation}"></div>
                     <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
                     <form th:action="@{/reservas/consultar}" method="post" class="row g-3">
+                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
                         <div class="col-12">
                             <label for="email" class="form-label">Correo de la reserva</label>
                             <input id="email" name="email" type="email" class="form-control" required autocomplete="email" th:value="${lookupEmail}">
@@ -44,6 +45,7 @@
                             <dt class="col-sm-4">Fecha y hora</dt><dd class="col-sm-8" th:text="|${reservation.reservationDate} · ${reservation.reservationTime}|">Fecha · hora</dd>
                         </dl>
                         <form th:if="${reservation.status == 'PENDIENTE' or reservation.status == 'CONFIRMADA'}" th:action="@{/reservas/cancelar}" method="post" onsubmit="return confirm('¿Cancelar esta reserva?');">
+                            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
                             <input type="hidden" name="email" th:value="${lookupEmail}">
                             <input type="hidden" name="accessCode" th:value="${accessCode}">
                             <button class="btn btn-outline-danger" type="submit"><i class="fa-solid fa-ban me-1"></i>Cancelar reserva</button>

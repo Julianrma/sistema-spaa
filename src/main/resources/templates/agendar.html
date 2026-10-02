@@ -40,6 +40,7 @@
                     </div>
                     <div th:if="${error}" class="alert alert-danger" role="alert"><i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${error}">No se pudo registrar la cita.</span></div>
                     <form th:action="@{/reservas/confirmar}" method="POST">
+                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
                         <!-- Paso 1: Selección de Sucursal -->
                         <div class="mb-4">
                             <label class="form-label fw-bold"><i class="fa-solid fa-shop text-success me-2"></i>Paso 1: Selecciona la Sucursal</label>

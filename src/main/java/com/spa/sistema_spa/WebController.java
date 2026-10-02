@@ -69,7 +69,7 @@ public class WebController {
         if (!Boolean.TRUE.equals(session.getAttribute("adminAuthenticated"))) {
             return "redirect:/admin/login";
         }
-        var reservations = reservationRepository.findAllByOrderByReservationDateAscReservationTimeAsc();
+        var reservations = reservationRepository.findAllByOrderByIdDesc();
         var branches = branchRepository.findAllByOrderByIdAsc();
         DashboardAnalytics analytics = DashboardAnalytics.from(reservations, branches);
         model.addAttribute("services", serviceRepository.findAllByOrderByIdAsc());
@@ -186,7 +186,7 @@ public class WebController {
     @GetMapping("/admin/reservations")
     public String reservationsAdmin(HttpSession session, Model model) {
         if (!isAdmin(session)) return "redirect:/admin/login";
-        model.addAttribute("reservations", reservationRepository.findAllByOrderByReservationDateAscReservationTimeAsc());
+        model.addAttribute("reservations", reservationRepository.findAllByOrderByIdDesc());
         model.addAttribute("branches", branchRepository.findAllByOrderByIdAsc());
         model.addAttribute("services", serviceRepository.findAllByOrderByIdAsc());
         model.addAttribute("masseuses", masseuseRepository.findAllByOrderByIdAsc());
@@ -222,7 +222,7 @@ public class WebController {
         model.addAttribute("branches", branchRepository.findAllByOrderByIdAsc());
         model.addAttribute("masseuses", masseuseRepository.findAllByOrderByIdAsc());
         model.addAttribute("editingService", serviceRepository.findById(id).orElse(null));
-        var reservations = reservationRepository.findAllByOrderByReservationDateAscReservationTimeAsc();
+        var reservations = reservationRepository.findAllByOrderByIdDesc();
         model.addAttribute("reservationCount", reservations.size());
         model.addAttribute("reservations", reservations);
         model.addAttribute("analytics", DashboardAnalytics.from(reservations, branchRepository.findAllByOrderByIdAsc()));

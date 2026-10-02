@@ -85,6 +85,7 @@
         </div>
 
         <form id="form-resena" th:action="@{/resenas/save}" method="post" class="bg-white border rounded p-4 mt-4">
+            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
             <h5 class="fw-bold">Comparte tu experiencia</h5>
             <div class="row g-3">
                 <div class="col-md-4"><label class="form-label">Nombre</label><input class="form-control" name="customerName" required></div>

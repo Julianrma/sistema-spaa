@@ -16,7 +16,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from Reservation r where r.accessCodeHash = :hash and lower(r.customerEmail) = lower(:email)")
     Optional<Reservation> findForUpdateByAccessCode(@Param("hash") String hash, @Param("email") String email);
-	List<Reservation> findAllByOrderByReservationDateAscReservationTimeAsc();
+	List<Reservation> findAllByOrderByIdDesc();
 	List<Reservation> findByMasseuseIdAndReservationDateAndStatusNot(Long masseuseId, java.time.LocalDate date, String status);
 	Optional<Reservation> findByAccessCodeHashAndCustomerEmailIgnoreCase(String accessCodeHash, String customerEmail);
 }
