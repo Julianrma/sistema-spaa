@@ -10,15 +10,7 @@
 </head>
 <body class="public-page">
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="/"><i class="fa-solid fa-spa text-success me-2"></i>SpaMoonBeauty</a>
-        <div class="ms-auto">
-            <a href="/" class="btn btn-outline-light btn-sm me-2">Inicio</a>
-            <a href="/agendar" class="btn btn-success btn-sm">Agendar Cita</a>
-        </div>
-    </div>
-</nav>
+<div th:replace="~{fragments/public-navbar :: navbar('branches')}"></div>
 
 <div class="container page-shell">
     <div class="page-intro" data-reveal>

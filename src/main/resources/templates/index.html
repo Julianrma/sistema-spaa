@@ -11,23 +11,7 @@
 <body class="public-page">
 
 <!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-    <div class="container">
-            <a class="navbar-brand fw-bold" href="/"><i class="fa-solid fa-spa text-success me-2"></i>SpaMoonBeauty</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto align-items-center">
-                <li class="nav-item"><a class="nav-link active" href="/">Inicio</a></li>
-                <li class="nav-item"><a class="nav-link" href="#servicios">Servicios</a></li>
-                <li class="nav-item"><a class="nav-link" href="/sucursales">Sucursales & Mapa</a></li>
-                <li class="nav-item"><a class="btn btn-outline-light btn-sm mx-2" href="/admin/dashboard"><i class="fa-solid fa-chart-line me-1"></i>Portal Admin</a></li>
-                <li class="nav-item"><a class="btn btn-success btn-sm px-3" href="/agendar"><i class="fa-solid fa-calendar-check me-1"></i>Agendar Cita</a></li>
-            </ul>
-        </div>
-    </div>
-</nav>
+<div th:replace="~{fragments/public-navbar :: navbar('home')}"></div>
 
 <!-- Hero Section -->
 <section class="hero text-white d-flex align-items-center text-center" data-reveal>
@@ -42,17 +26,21 @@
     </div>
 </section>
 
-<!-- Catálogo de Servicios -->
+<!-- Servicios destacados -->
 <section id="servicios" class="container py-5" data-reveal>
     <div class="text-center mb-5">
-        <h2 class="fw-bold text-dark">Nuestros Tratamientos Exclusivos</h2>
-        <p class="text-muted">Selecciona tu terapia y reserva en la sucursal de tu conveniencia</p>
+        <p class="eyebrow text-uppercase small fw-bold mb-2">La selección SpaMoonBeauty</p>
+        <h2 class="fw-bold text-dark">Servicios destacados</h2>
+        <p class="text-muted">Descubre nuestros tratamientos más elegidos y reserva el momento que necesitas.</p>
     </div>
 
-    <div class="row g-4">
-        <div class="col-md-6 col-lg-4" th:each="service : ${services}" data-reveal data-reveal-delay="1">
-            <div class="card card-service h-100 shadow-sm">
-                <img th:src="${service.imageUrl}" class="card-img-top" style="height: 200px; object-fit: cover;" th:alt="${service.name}">
+    <div class="row g-4" th:if="${!#lists.isEmpty(featuredServices)}">
+        <div class="col-md-6 col-lg-4" th:each="service : ${featuredServices}" data-reveal data-reveal-delay="1">
+            <article class="card card-service h-100 shadow-sm">
+                <div class="service-image-frame">
+                    <img th:src="${service.imageUrl}" class="card-img-top service-image" data-service-image th:alt="${service.name}">
+                    <span class="service-image-fallback" aria-hidden="true"><i class="fa-solid fa-spa"></i></span>
+                </div>
                 <div class="card-body d-flex flex-column">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="badge bg-primary-subtle text-primary fw-semibold" th:text="${service.category}">Categoría</span>
@@ -62,13 +50,34 @@
                     <p class="card-text text-muted small flex-grow-1" th:text="${service.description}">Descripción del servicio.</p>
                     <div class="d-flex justify-content-between align-items-center text-muted small mt-3 pt-3 border-top">
                         <span><i class="fa-regular fa-clock me-1"></i><span th:text="${service.durationMinutes}">60</span> minutos</span>
-                        <a th:href="@{/agendar(servicio=${service.id})}" class="btn btn-sm btn-outline-success">Reservar</a>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-success service-details-trigger"
+                                    data-service-modal-trigger
+                                    th:data-service-id="${service.id}"
+                                    th:data-service-name="${service.name}"
+                                    th:data-service-category="${service.category}"
+                                    th:data-service-description="${service.description}"
+                                    th:data-service-duration="${service.durationMinutes}"
+                                    th:data-service-price="${service.price}"
+                                    th:data-service-image="${service.imageUrl}">
+                                Ver detalles
+                            </button>
+                            <a th:href="@{/agendar(servicioId=${service.id})}" class="btn btn-sm btn-success">Reservar</a>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </article>
         </div>
     </div>
+    <div class="featured-empty text-center" th:if="${#lists.isEmpty(featuredServices)}">
+        <div class="featured-empty-icon"><i class="fa-solid fa-spa"></i></div>
+        <h3 class="h4">El catálogo está tomando forma</h3>
+        <p class="text-muted mb-4">Pronto encontrarás aquí una selección de experiencias para tu bienestar.</p>
+        <a class="btn btn-outline-success" href="/agendar">Explorar disponibilidad</a>
+    </div>
 </section>
+
+<div th:replace="~{fragments/service-modal :: modal}"></div>
 
 <footer class="bg-dark text-white text-center py-3">
     <p class="small mb-0">&copy; 2026 SpaMoonBeauty. Todos los derechos reservados.</p>

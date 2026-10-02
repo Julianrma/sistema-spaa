@@ -127,13 +127,66 @@ class SistemaSpaApplicationTests {
 				.param("description", "Descripción para validar el alta desde el portal.")
 				.param("durationMinutes", "30")
 				.param("price", "20.00")
-				.param("imageUrl", "https://example.com/service.jpg"))
+				.param("imageUrl", "https://example.com/service.jpg")
+				.param("featured", "true"))
 				.andExpect(status().is3xxRedirection())
 				.andExpect(redirectedUrl("/admin/dashboard?serviceSaved"));
 
 		List<SpaService> services = serviceRepository.findAll();
 		org.junit.jupiter.api.Assertions.assertTrue(services.stream()
-				.anyMatch(service -> "Servicio de prueba".equals(service.getName())));
+				.anyMatch(service -> "Servicio de prueba".equals(service.getName()) && service.isFeatured()));
+	}
+
+	@Test
+	void homeShowsOnlyActiveFeaturedServices() throws Exception {
+		SpaService featured = serviceRepository.save(new SpaService("Servicio destacado", "Prueba",
+				"Visible en Inicio", 30, new BigDecimal("20.00"), "https://example.com/featured.jpg"));
+		featured.setFeatured(true);
+		serviceRepository.save(featured);
+		SpaService normal = serviceRepository.save(new SpaService("Servicio normal", "Prueba",
+				"No destacado", 30, new BigDecimal("20.00"), "https://example.com/normal.jpg"));
+		SpaService inactive = serviceRepository.save(new SpaService("Servicio inactivo", "Prueba",
+				"No visible", 30, new BigDecimal("20.00"), "https://example.com/inactive.jpg"));
+		inactive.setFeatured(true);
+		inactive.setActive(false);
+		serviceRepository.save(inactive);
+
+		mockMvc.perform(get("/"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("Servicio destacado")))
+				.andExpect(content().string(org.hamcrest.Matchers.not(containsString("Servicio inactivo"))));
+		org.junit.jupiter.api.Assertions.assertFalse(serviceRepository.findByActiveTrueAndFeaturedTrueOrderByIdAsc()
+				.contains(normal));
+	}
+
+	@Test
+	void servicesPageShowsActiveFeaturedAndNonFeaturedServicesButNotInactiveOnes() throws Exception {
+		SpaService normal = serviceRepository.save(new SpaService("Servicio de catálogo", "Prueba",
+				"Disponible aunque no sea destacado", 45, new BigDecimal("25.00"), "https://example.com/catalog.jpg"));
+		SpaService featured = serviceRepository.save(new SpaService("Servicio catálogo destacado", "Prueba",
+				"También aparece en el catálogo", 60, new BigDecimal("35.00"), "https://example.com/catalog-featured.jpg"));
+		featured.setFeatured(true);
+		serviceRepository.save(featured);
+		SpaService inactive = serviceRepository.save(new SpaService("Servicio catálogo inactivo", "Prueba",
+				"No debe aparecer públicamente", 30, new BigDecimal("15.00"), "https://example.com/catalog-inactive.jpg"));
+		inactive.setActive(false);
+		serviceRepository.save(inactive);
+
+		mockMvc.perform(get("/servicios"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString(normal.getName())))
+				.andExpect(content().string(containsString(featured.getName())))
+				.andExpect(content().string(org.hamcrest.Matchers.not(containsString(inactive.getName()))));
+	}
+
+	@Test
+	void bookingPagePreselectsServiceFromOfficialQueryParameter() throws Exception {
+		SpaService service = serviceRepository.save(new SpaService("Servicio preseleccionado", "Prueba",
+				"Seleccionado desde Inicio", 30, new BigDecimal("20.00"), "https://example.com/preselected.jpg"));
+
+		mockMvc.perform(get("/agendar").param("servicioId", service.getId().toString()))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("value=\"" + service.getId() + "\" selected")));
 	}
 
 	@Test

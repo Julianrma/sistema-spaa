@@ -1,0 +1,22 @@
+<div th:fragment="modal" class="service-modal" id="serviceModal" role="dialog" aria-modal="true" aria-labelledby="serviceModalTitle" aria-describedby="serviceModalDescription" hidden>
+    <div class="service-modal-backdrop" data-service-modal-close></div>
+    <div class="service-modal-dialog" role="document" tabindex="-1">
+        <button type="button" class="service-modal-close" aria-label="Cerrar detalles" data-service-modal-close><i class="fa-solid fa-xmark"></i></button>
+        <div class="service-modal-grid">
+            <div class="service-modal-image-frame service-image-frame">
+                <img id="serviceModalImage" class="service-modal-image service-image" data-service-image alt="">
+                <span class="service-image-fallback" aria-hidden="true"><i class="fa-solid fa-spa"></i></span>
+            </div>
+            <div class="service-modal-content">
+                <span class="service-modal-category" id="serviceModalCategory"></span>
+                <h2 id="serviceModalTitle"></h2>
+                <p id="serviceModalDescription" class="service-modal-description"></p>
+                <div class="service-modal-meta">
+                    <span><i class="fa-regular fa-clock me-2"></i><strong id="serviceModalDuration"></strong> minutos</span>
+                    <span class="service-modal-price">$<strong id="serviceModalPrice"></strong></span>
+                </div>
+                <a id="serviceModalBooking" class="btn btn-success btn-lg" href="#"><i class="fa-solid fa-calendar-check me-2"></i>Reservar este servicio</a>
+            </div>
+        </div>
+    </div>
+</div>

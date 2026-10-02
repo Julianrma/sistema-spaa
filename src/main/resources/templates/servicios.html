@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servicios - SpaMoonBeauty</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/spamoonbeauty.css">
+</head>
+<body class="public-page services-page">
+<div th:replace="~{fragments/public-navbar :: navbar('services')}"></div>
+
+<main>
+    <section class="catalog-hero" data-reveal>
+        <div class="container">
+            <p class="eyebrow text-uppercase small fw-bold mb-2">Rituales para volver a ti</p>
+            <h1>El catálogo SpaMoonBeauty</h1>
+            <p>Explora experiencias diseñadas para relajar, renovar y cuidar tu bienestar. Elige un servicio para conocer todos sus detalles.</p>
+        </div>
+    </section>
+
+    <section class="container catalog-section" aria-labelledby="catalog-title">
+        <div class="catalog-heading" data-reveal>
+            <div>
+                <p class="eyebrow text-uppercase small fw-bold mb-2">Experiencias disponibles</p>
+                <h2 id="catalog-title">Todos nuestros servicios</h2>
+            </div>
+            <span class="catalog-count" th:text="|${#lists.size(services)} experiencias|">0 experiencias</span>
+        </div>
+        <div class="service-catalog-grid" th:if="${!#lists.isEmpty(services)}">
+            <article class="card service-catalog-card" th:each="service : ${services}" data-reveal data-reveal-delay="1" data-service-modal-trigger
+                     th:data-service-id="${service.id}"
+                     th:data-service-name="${service.name}"
+                     th:data-service-category="${service.category}"
+                     th:data-service-description="${service.description}"
+                     th:data-service-duration="${service.durationMinutes}"
+                     th:data-service-price="${service.price}"
+                     th:data-service-image="${service.imageUrl}">
+                <div class="service-image-frame">
+                    <img th:src="${service.imageUrl}" class="service-image" data-service-image th:alt="${service.name}">
+                    <span class="service-image-fallback" aria-hidden="true"><i class="fa-solid fa-spa"></i></span>
+                </div>
+                <div class="service-catalog-body">
+                    <span class="service-modal-category" th:text="${service.category}">Categoría</span>
+                    <h3 th:text="${service.name}">Servicio</h3>
+                    <p th:text="${service.description}">Descripción del servicio.</p>
+                    <div class="service-catalog-footer">
+                        <span><i class="fa-regular fa-clock me-1"></i><strong th:text="${service.durationMinutes}">60</strong> min</span>
+                        <span class="service-catalog-price">$<strong th:text="${service.price}">45.00</strong></span>
+                    </div>
+                    <button type="button" class="btn btn-outline-success service-catalog-action">Ver detalles <i class="fa-solid fa-arrow-right ms-1"></i></button>
+                </div>
+            </article>
+        </div>
+        <div class="featured-empty text-center" th:if="${#lists.isEmpty(services)}">
+            <div class="featured-empty-icon"><i class="fa-solid fa-spa"></i></div>
+            <h2 class="h4">Estamos preparando nuevas experiencias</h2>
+            <p class="text-muted mb-0">No hay servicios activos disponibles en este momento.</p>
+        </div>
+    </section>
+</main>
+
+<div th:replace="~{fragments/service-modal :: modal}"></div>
+<script src="/js/spamoonbeauty-ui.js"></script>
+</body>
+</html>

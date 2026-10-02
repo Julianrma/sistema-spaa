@@ -10,15 +10,7 @@
 </head>
 <body class="public-page booking-page">
 
-<nav class="navbar navbar-dark bg-dark mb-4">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="/"><i class="fa-solid fa-spa text-success me-2"></i>SpaMoonBeauty</a>
-        <div class="d-flex gap-2">
-            <a href="/reservas/consultar" class="btn btn-outline-light btn-sm">Consultar reserva</a>
-            <a href="/" class="btn btn-outline-light btn-sm">Volver al Inicio</a>
-        </div>
-    </div>
-</nav>
+<div th:replace="~{fragments/public-navbar :: navbar('booking')}"></div>
 
 <div class="container page-shell">
     <div class="row justify-content-center">

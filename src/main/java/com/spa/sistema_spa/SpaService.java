@@ -1,6 +1,7 @@
 package com.spa.sistema_spa;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -16,11 +17,13 @@ public class SpaService {
     private Long id;
     private String name;
     private String category;
+    @Column(columnDefinition = "TEXT")
     private String description;
     private Integer durationMinutes;
     private BigDecimal price;
     private String imageUrl;
     private boolean active = true;
+    private boolean featured = false;
 
     protected SpaService() {
     }
@@ -42,6 +45,7 @@ public class SpaService {
     public BigDecimal getPrice() { return price; }
     public String getImageUrl() { return imageUrl; }
     public boolean isActive() { return active; }
+    public boolean isFeatured() { return featured; }
 
     public void update(String name, String category, String description, Integer durationMinutes,
                        BigDecimal price, String imageUrl) {
@@ -54,4 +58,5 @@ public class SpaService {
     }
 
     public void setActive(boolean active) { this.active = active; }
+    public void setFeatured(boolean featured) { this.featured = featured; }
 }

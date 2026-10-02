@@ -41,7 +41,7 @@ public class WebController {
 
     @GetMapping("/")
     public String home(Model model) {
-        model.addAttribute("services", serviceRepository.findByActiveTrueOrderByIdAsc());
+        model.addAttribute("featuredServices", serviceRepository.findByActiveTrueAndFeaturedTrueOrderByIdAsc());
         return "index";
     }
 
@@ -53,6 +53,12 @@ public class WebController {
         model.addAttribute("reviewCount", reviews.size());
         model.addAttribute("averageRating", reviews.stream().mapToInt(review -> review.getRating()).average().orElse(0));
         return "sucursales";
+    }
+
+    @GetMapping("/servicios")
+    public String servicios(Model model) {
+        model.addAttribute("services", serviceRepository.findByActiveTrueOrderByIdAsc());
+        return "servicios";
     }
 
     @GetMapping("/agendar")
@@ -291,13 +297,17 @@ public class WebController {
                               @RequestParam String name, @RequestParam String category,
                               @RequestParam String description, @RequestParam Integer durationMinutes,
                               @RequestParam BigDecimal price, @RequestParam String imageUrl,
+                              @RequestParam(defaultValue = "false") boolean featured,
                               HttpSession session) {
         if (!isAdmin(session)) return "redirect:/admin/login";
         if (id == null) {
-            serviceRepository.save(new SpaService(name, category, description, durationMinutes, price, imageUrl));
+            SpaService service = new SpaService(name, category, description, durationMinutes, price, imageUrl);
+            service.setFeatured(featured);
+            serviceRepository.save(service);
         } else {
             serviceRepository.findById(id).ifPresent(service -> {
                 service.update(name, category, description, durationMinutes, price, imageUrl);
+                service.setFeatured(featured);
                 serviceRepository.save(service);
             });
         }
