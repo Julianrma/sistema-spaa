@@ -8,20 +8,32 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/spamoonbeauty.css">
 </head>
-<body class="public-page">
+<body class="public-page home-page">
 
 <!-- Navbar -->
 <div th:replace="~{fragments/public-navbar :: navbar('home')}"></div>
 
 <!-- Hero Section -->
-<section class="hero text-white d-flex align-items-center text-center" data-reveal>
-    <div class="container py-5">
-        <p class="text-uppercase small fw-bold mb-3">Experiencia premium de bienestar</p>
-        <h1 class="display-4 fw-bold"><span class="hero-brand">SpaMoonBeauty</span><br>Renueva tu Cuerpo y Mente</h1>
-        <p class="lead mb-4">4 sucursales estratégicas para brindarte la mejor experiencia de relajación.</p>
-        <div class="d-flex justify-content-center gap-3">
-            <a href="/agendar" class="btn btn-success btn-lg px-4"><i class="fa-solid fa-calendar-plus me-2"></i>Reservar Turno</a>
-            <a href="/sucursales" class="btn btn-outline-light btn-lg px-4"><i class="fa-solid fa-map-location-dot me-2"></i>Ver Sedes</a>
+<section class="hero home-hero text-white" data-reveal>
+    <div class="hero-orbit hero-orbit-one" aria-hidden="true"></div>
+    <div class="hero-orbit hero-orbit-two" aria-hidden="true"></div>
+    <div class="container hero-layout">
+        <div class="hero-copy">
+            <p class="eyebrow text-uppercase small fw-bold mb-3">Un ritual para volver a ti</p>
+            <h1 class="fw-bold"><span class="hero-brand">SpaMoonBeauty</span><br><span>Renueva tu cuerpo y mente.</span></h1>
+            <p class="lead mb-4">Tratamientos pensados para bajar el ritmo, cuidar de ti y convertir cada visita en una pausa memorable.</p>
+            <div class="hero-actions">
+                <a href="/agendar" class="btn btn-success btn-lg px-4"><i class="fa-solid fa-calendar-plus me-2"></i>Agendar mi momento</a>
+                <a href="/sucursales" class="btn btn-outline-light btn-lg px-4"><i class="fa-solid fa-location-dot me-2"></i>Explorar sucursales</a>
+            </div>
+            <div class="hero-note"><span class="hero-note-line"></span><span>Bienestar, belleza y tiempo para ti</span></div>
+        </div>
+        <div class="hero-visual" aria-label="Experiencia de relajación SpaMoonBeauty">
+            <div class="hero-visual-frame">
+                <img src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200&amp;auto=format&amp;fit=crop&amp;q=85" alt="Ambiente de relajación en un spa" data-hero-image>
+                <span class="hero-image-fallback" aria-hidden="true"><i class="fa-solid fa-spa"></i><span>Tu momento de calma</span></span>
+                <div class="hero-visual-caption"><span class="caption-mark"><i class="fa-solid fa-spa"></i></span><span>Un espacio para respirar</span></div>
+            </div>
         </div>
     </div>
 </section>
@@ -40,6 +52,7 @@
                 <div class="service-image-frame">
                     <img th:src="${service.imageUrl}" class="card-img-top service-image" data-service-image th:alt="${service.name}">
                     <span class="service-image-fallback" aria-hidden="true"><i class="fa-solid fa-spa"></i></span>
+                    <span class="featured-mark"><i class="fa-solid fa-star" aria-hidden="true"></i> Selección SpaMoonBeauty</span>
                 </div>
                 <div class="card-body d-flex flex-column">
                     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -50,7 +63,7 @@
                     <p class="card-text text-muted small flex-grow-1" th:text="${service.description}">Descripción del servicio.</p>
                     <div class="d-flex justify-content-between align-items-center text-muted small mt-3 pt-3 border-top">
                         <span><i class="fa-regular fa-clock me-1"></i><span th:text="${service.durationMinutes}">60</span> minutos</span>
-                        <div class="d-flex gap-2">
+                        <div class="service-card-actions">
                             <button type="button" class="btn btn-sm btn-outline-success service-details-trigger"
                                     data-service-modal-trigger
                                     th:data-service-id="${service.id}"
@@ -60,9 +73,9 @@
                                     th:data-service-duration="${service.durationMinutes}"
                                     th:data-service-price="${service.price}"
                                     th:data-service-image="${service.imageUrl}">
-                                Ver detalles
+                                <i class="fa-regular fa-eye me-1" aria-hidden="true"></i>Ver detalles
                             </button>
-                            <a th:href="@{/agendar(servicioId=${service.id})}" class="btn btn-sm btn-success">Reservar</a>
+                            <a th:href="@{/agendar(servicioId=${service.id})}" class="btn btn-sm btn-success"><i class="fa-solid fa-arrow-right me-1" aria-hidden="true"></i>Reservar</a>
                         </div>
                     </div>
                 </div>
@@ -77,10 +90,70 @@
     </div>
 </section>
 
+<section class="home-transition" data-reveal>
+    <div class="container">
+        <div class="home-transition-inner">
+            <div>
+                <p class="eyebrow text-uppercase small fw-bold mb-2">Elige cómo quieres sentirte</p>
+                <h2>Encuentra la experiencia adecuada para ti</h2>
+                <p>Explora nuestros tratamientos y elige el que mejor se adapte a tu momento.</p>
+            </div>
+            <a class="btn btn-outline-light" href="/servicios">Ver todos los servicios <i class="fa-solid fa-arrow-up-right-from-square ms-2" aria-hidden="true"></i></a>
+        </div>
+    </div>
+</section>
+
+<section class="home-branches" data-reveal>
+    <div class="container">
+        <div class="home-branches-layout">
+            <div class="home-branches-visual" aria-hidden="true">
+                <div class="branch-compass"><i class="fa-solid fa-location-dot"></i></div>
+                <span class="branch-pulse branch-pulse-one"></span>
+                <span class="branch-pulse branch-pulse-two"></span>
+                <span class="branch-line branch-line-one"></span>
+                <span class="branch-line branch-line-two"></span>
+            </div>
+            <div class="home-branches-copy">
+                <p class="eyebrow text-uppercase small fw-bold mb-2">Tu bienestar, más cerca</p>
+                <h2>Encuentra tu espacio SpaMoonBeauty</h2>
+                <p>Elige la sucursal que mejor se adapte a tu recorrido y descubre un lugar preparado para recibirte.</p>
+                <a class="btn btn-outline-success" href="/sucursales">Ver sucursales <i class="fa-solid fa-arrow-right ms-2" aria-hidden="true"></i></a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="home-final-cta" data-reveal>
+    <div class="container">
+        <div class="home-final-cta-inner">
+            <p class="eyebrow text-uppercase small fw-bold mb-3">Haz espacio para ti</p>
+            <h2>Tu momento empieza aquí.</h2>
+            <p>Regálate una pausa y déjanos acompañarte.</p>
+            <a class="btn btn-success btn-lg px-4" href="/agendar"><i class="fa-solid fa-calendar-check me-2" aria-hidden="true"></i>Agendar ahora</a>
+        </div>
+    </div>
+</section>
+
 <div th:replace="~{fragments/service-modal :: modal}"></div>
 
-<footer class="bg-dark text-white text-center py-3">
-    <p class="small mb-0">&copy; 2026 SpaMoonBeauty. Todos los derechos reservados.</p>
+<footer class="home-footer">
+    <div class="container">
+        <div class="home-footer-main">
+            <div class="home-footer-brand">
+                <a class="navbar-brand fw-bold" href="/"><i class="fa-solid fa-spa me-2" aria-hidden="true"></i>SpaMoonBeauty</a>
+                <p>Un espacio para reconectar con tu bienestar.</p>
+            </div>
+            <nav class="home-footer-links" aria-label="Enlaces del sitio">
+                <a href="/">Inicio</a>
+                <a href="/servicios">Servicios</a>
+                <a href="/sucursales">Sucursales</a>
+                <a href="/reservas/consultar">Consultar reserva</a>
+                <a href="/agendar">Agendar</a>
+                <a href="/admin/dashboard">Portal privado</a>
+            </nav>
+        </div>
+        <div class="home-footer-bottom"><span>&copy; 2026 SpaMoonBeauty. Todos los derechos reservados.</span><span>Bienestar con intención.</span></div>
+    </div>
 </footer>
 <script src="/js/spamoonbeauty-ui.js"></script>
 </body>

@@ -115,4 +115,13 @@
         image.addEventListener('error', markBroken);
         if (image.complete && image.naturalWidth === 0) markBroken();
     });
+
+    document.querySelectorAll('[data-hero-image]').forEach((image) => {
+        const markHeroBroken = () => {
+            image.classList.add('is-broken');
+            image.removeAttribute('src');
+        };
+        image.addEventListener('error', markHeroBroken);
+        if (image.complete && image.naturalWidth === 0) markHeroBroken();
+    });
 })();
