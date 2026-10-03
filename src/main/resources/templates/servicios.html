@@ -13,10 +13,17 @@
 
 <main>
     <section class="catalog-hero" data-reveal>
-        <div class="container">
-            <p class="eyebrow text-uppercase small fw-bold mb-2">Rituales para volver a ti</p>
-            <h1>El catálogo SpaMoonBeauty</h1>
-            <p>Explora experiencias diseñadas para relajar, renovar y cuidar tu bienestar. Elige un servicio para conocer todos sus detalles.</p>
+        <div class="container catalog-hero-layout">
+            <div class="catalog-hero-copy">
+                <p class="eyebrow text-uppercase small fw-bold mb-2">Rituales para volver a ti</p>
+                <h1>El catálogo SpaMoonBeauty</h1>
+                <p>Explora experiencias diseñadas para relajar, renovar y cuidar tu bienestar. Elige un servicio para conocer todos sus detalles.</p>
+            </div>
+            <div class="catalog-hero-visual" aria-label="Ambiente de relajación SpaMoonBeauty">
+                <img src="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=900&amp;auto=format&amp;fit=crop&amp;q=85" alt="Tratamiento de relajación en SpaMoonBeauty" data-catalog-hero-image>
+                <span class="catalog-hero-fallback" aria-hidden="true"><i class="fa-solid fa-spa"></i><span>Experiencias para volver a ti</span></span>
+                <span class="catalog-hero-caption"><i class="fa-solid fa-spa" aria-hidden="true"></i> Experiencias para volver a ti</span>
+            </div>
         </div>
     </section>
 
@@ -29,14 +36,7 @@
             <span class="catalog-count" th:text="|${#lists.size(services)} experiencias|">0 experiencias</span>
         </div>
         <div class="service-catalog-grid" th:if="${!#lists.isEmpty(services)}">
-            <article class="card service-catalog-card" th:each="service : ${services}" data-reveal data-reveal-delay="1" data-service-modal-trigger
-                     th:data-service-id="${service.id}"
-                     th:data-service-name="${service.name}"
-                     th:data-service-category="${service.category}"
-                     th:data-service-description="${service.description}"
-                     th:data-service-duration="${service.durationMinutes}"
-                     th:data-service-price="${service.price}"
-                     th:data-service-image="${service.imageUrl}">
+            <article class="card service-catalog-card" th:each="service : ${services}" data-reveal data-reveal-delay="1">
                 <div class="service-image-frame">
                     <img th:src="${service.imageUrl}" class="service-image" data-service-image th:alt="${service.name}">
                     <span class="service-image-fallback" aria-hidden="true"><i class="fa-solid fa-spa"></i></span>
@@ -46,10 +46,19 @@
                     <h3 th:text="${service.name}">Servicio</h3>
                     <p th:text="${service.description}">Descripción del servicio.</p>
                     <div class="service-catalog-footer">
-                        <span><i class="fa-regular fa-clock me-1"></i><strong th:text="${service.durationMinutes}">60</strong> min</span>
+                        <span class="service-catalog-duration"><i class="fa-regular fa-clock me-1"></i><strong th:text="${service.durationMinutes}">60</strong> min</span>
                         <span class="service-catalog-price">$<strong th:text="${service.price}">45.00</strong></span>
                     </div>
-                    <button type="button" class="btn btn-outline-success service-catalog-action">Ver detalles <i class="fa-solid fa-arrow-right ms-1"></i></button>
+                    <button type="button" class="btn btn-outline-success service-catalog-action" data-service-modal-trigger
+                            th:data-service-id="${service.id}"
+                            th:data-service-name="${service.name}"
+                            th:data-service-category="${service.category}"
+                            th:data-service-description="${service.description}"
+                            th:data-service-duration="${service.durationMinutes}"
+                            th:data-service-price="${service.price}"
+                            th:data-service-image="${service.imageUrl}">
+                        <span>Ver detalles</span><i class="fa-solid fa-arrow-right ms-1" aria-hidden="true"></i>
+                    </button>
                 </div>
             </article>
         </div>

@@ -186,7 +186,8 @@ class SistemaSpaApplicationTests {
 
 		mockMvc.perform(get("/agendar").param("servicioId", service.getId().toString()))
 				.andExpect(status().isOk())
-				.andExpect(content().string(containsString("value=\"" + service.getId() + "\" selected")));
+				.andExpect(content().string(containsString("value=\"" + service.getId() + "\"")))
+				.andExpect(content().string(containsString("data-service-name=\"Servicio preseleccionado\" selected=\"selected\"")));
 	}
 
 	@Test

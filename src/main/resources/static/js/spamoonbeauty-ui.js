@@ -124,4 +124,106 @@
         image.addEventListener('error', markHeroBroken);
         if (image.complete && image.naturalWidth === 0) markHeroBroken();
     });
+
+    document.querySelectorAll('[data-catalog-hero-image]').forEach((image) => {
+        const markCatalogHeroBroken = () => {
+            image.classList.add('is-broken');
+            image.removeAttribute('src');
+        };
+        image.addEventListener('error', markCatalogHeroBroken);
+        if (image.complete && image.naturalWidth === 0) markCatalogHeroBroken();
+    });
+
+    const branchesPage = document.querySelector('.branches-page');
+    if (branchesPage) {
+        const mapFrame = branchesPage.querySelector('#mapFrame');
+        const selectedBranchName = branchesPage.querySelector('#selectedBranchName');
+        const branchCards = [...branchesPage.querySelectorAll('.branch-card')];
+        const mapTriggers = branchesPage.querySelectorAll('[data-branch-map-trigger]');
+
+        const showBranchOnMap = (card) => {
+            if (!mapFrame || !card) return;
+            const { lat, lng, name } = card.dataset;
+            mapFrame.src = `https://maps.google.com/maps?q=${encodeURIComponent(lat)},${encodeURIComponent(lng)}&z=15&output=embed`;
+            mapFrame.title = `Mapa de ${name}`;
+            selectedBranchName.textContent = name;
+            branchCards.forEach((item) => item.classList.toggle('active', item === card));
+        };
+
+        mapTriggers.forEach((trigger) => {
+            trigger.addEventListener('click', () => showBranchOnMap(trigger.closest('.branch-card')));
+        });
+    }
+
+    const bookingPage = document.querySelector('.booking-page');
+    if (bookingPage) {
+        const branchSelect = bookingPage.querySelector('#sucursalId');
+        const serviceSelect = bookingPage.querySelector('#servicioId');
+        const masseuseSelect = bookingPage.querySelector('#masajistaId');
+        const dateInput = bookingPage.querySelector('#fecha');
+        const timeInput = bookingPage.querySelector('#horaSeleccionada');
+        const summary = {
+            branch: bookingPage.querySelector('#summaryBranch'),
+            service: bookingPage.querySelector('#summaryService'),
+            masseuse: bookingPage.querySelector('#summaryMasseuse'),
+            date: bookingPage.querySelector('#summaryDate'),
+            time: bookingPage.querySelector('#summaryTime'),
+            price: bookingPage.querySelector('#summaryPrice')
+        };
+
+        const selectedText = (select, fallback) => select?.selectedOptions[0]?.value
+            ? select.selectedOptions[0].textContent.trim()
+            : fallback;
+
+        const formatDate = (value) => {
+            if (!value) return 'Por elegir';
+            const parsed = new Date(value + 'T00:00:00');
+            return Number.isNaN(parsed.getTime()) ? value : new Intl.DateTimeFormat('es-EC', {
+                day: 'numeric', month: 'short', year: 'numeric'
+            }).format(parsed);
+        };
+
+        const updateBookingSummary = () => {
+            if (!branchSelect || !serviceSelect || !masseuseSelect || !dateInput || !timeInput) return;
+            const serviceOption = serviceSelect.selectedOptions[0];
+            summary.branch.textContent = selectedText(branchSelect, 'Selecciona una sede');
+            summary.service.textContent = serviceOption?.dataset.serviceName || selectedText(serviceSelect, 'Por elegir');
+            summary.masseuse.textContent = selectedText(masseuseSelect, 'Por elegir');
+            summary.date.textContent = formatDate(dateInput.value);
+            summary.time.textContent = timeInput.value || 'Por elegir';
+            summary.price.textContent = serviceOption?.dataset.price ? '$' + serviceOption.dataset.price : 'Por elegir';
+        };
+
+        const refreshAvailability = () => {
+            const branch = branchSelect.value;
+            const masseuse = masseuseSelect.value;
+            const service = serviceSelect.value;
+            const date = dateInput.value;
+            updateBookingSummary();
+            if (branch && masseuse && service && date) {
+                window.location.href = '/agendar/disponibilidad?sucursalId=' + encodeURIComponent(branch)
+                    + '&masajistaId=' + encodeURIComponent(masseuse)
+                    + '&servicioId=' + encodeURIComponent(service)
+                    + '&fecha=' + encodeURIComponent(date);
+            }
+        };
+
+        [branchSelect, masseuseSelect, serviceSelect, dateInput].forEach((field) => {
+            field?.addEventListener('change', refreshAvailability);
+        });
+
+        bookingPage.querySelectorAll('[data-slot]').forEach((button) => {
+            button.addEventListener('click', () => {
+                timeInput.value = button.dataset.slot;
+                bookingPage.querySelectorAll('[data-slot]').forEach((item) => {
+                    const selected = item === button;
+                    item.classList.toggle('active', selected);
+                    item.setAttribute('aria-pressed', String(selected));
+                });
+                updateBookingSummary();
+            });
+        });
+
+        updateBookingSummary();
+    }
 })();

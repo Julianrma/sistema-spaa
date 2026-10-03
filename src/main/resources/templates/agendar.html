@@ -12,13 +12,14 @@
 
 <div th:replace="~{fragments/public-navbar :: navbar('booking')}"></div>
 
-<div class="container page-shell">
-    <div class="row justify-content-center">
-        <div class="col-lg-8" data-reveal>
+<main class="container page-shell">
+    <div class="booking-layout">
+        <div class="booking-form-column" data-reveal>
             <div class="card booking-card">
-                <div class="stepper-header p-3 text-center">
-                    <h4 class="fw-bold mb-1"><i class="fa-regular fa-calendar-check me-2"></i>Reserva tu Cita</h4>
-                    <p class="small text-white-50 mb-0">Completa los 4 pasos para confirmar tu servicio de bienestar</p>
+                <div class="stepper-header">
+                    <p class="booking-eyebrow text-uppercase small fw-bold mb-2">Tu momento Spa</p>
+                    <h1 class="fw-bold mb-2"><i class="fa-regular fa-calendar-check me-2" aria-hidden="true"></i>Reserva tu momento</h1>
+                    <p class="small mb-0">Completa estas cinco selecciones para confirmar tu experiencia de bienestar.</p>
                 </div>
                 <div class="card-body booking-body">
                     <div th:if="${confirmation}" class="alert alert-success" role="alert"><i class="fa-solid fa-circle-check me-2"></i><span th:text="${confirmation}">Cita registrada.</span></div>
@@ -30,60 +31,64 @@
                     <div th:if="${error}" class="alert alert-danger" role="alert"><i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${error}">No se pudo registrar la cita.</span></div>
                     <form th:action="@{/reservas/confirmar}" method="POST">
                         <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
-                        <!-- Paso 1: Selección de Sucursal -->
                         <div class="booking-section">
-                            <label class="form-label fw-bold"><i class="fa-solid fa-shop text-success me-2"></i>Paso 1: Selecciona la Sucursal</label>
-                            <select class="form-select form-select-lg" name="sucursalId" required>
+                            <p class="booking-step-label"><span class="booking-step-number">01</span><span><i class="fa-solid fa-shop text-success me-2" aria-hidden="true"></i>Paso 1 · Selecciona la sucursal</span></p>
+                            <label class="visually-hidden" for="sucursalId">Sucursal</label>
+                            <select id="sucursalId" class="form-select form-select-lg" name="sucursalId" required>
                                 <option value="" selected disabled>-- Elige la sede más conveniente --</option>
                                 <option th:each="branch : ${branches}" th:value="${branch.id}" th:selected="${branch.id == selectedBranchId}" th:text="${branch.name}">Sucursal</option>
                             </select>
                         </div>
 
-                        <!-- Paso 2: Selección de Servicio -->
                         <div class="booking-section">
-                            <label class="form-label fw-bold"><i class="fa-solid fa-hand-holding-heart text-success me-2"></i>Paso 2: Tratamiento o Servicio</label>
-                            <select class="form-select form-select-lg" name="servicioId" required>
+                            <p class="booking-step-label"><span class="booking-step-number">02</span><span><i class="fa-solid fa-hand-holding-heart text-success me-2" aria-hidden="true"></i>Paso 2 · Elige tu tratamiento</span></p>
+                            <label class="visually-hidden" for="servicioId">Tratamiento o servicio</label>
+                            <select id="servicioId" class="form-select form-select-lg" name="servicioId" required>
                                 <option value="" selected disabled>-- Elige el servicio deseado --</option>
-                                <option th:each="service : ${services}" th:value="${service.id}" th:selected="${service.id == selectedServiceId}" th:text="|${service.name} (${service.durationMinutes} min) - $${service.price}|">Servicio</option>
+                                <option th:each="service : ${services}" th:value="${service.id}" th:selected="${service.id == selectedServiceId}" th:data-price="${service.price}" th:data-service-name="${service.name}" th:text="|${service.name} (${service.durationMinutes} min) - $${service.price}|">Servicio</option>
                             </select>
                         </div>
 
                         <div class="booking-section">
-                            <label class="form-label fw-bold"><i class="fa-solid fa-hands text-success me-2"></i>Paso 3: Elige tu masajista</label>
-                            <select class="form-select form-select-lg" name="masajistaId" required>
+                            <p class="booking-step-label"><span class="booking-step-number">03</span><span><i class="fa-solid fa-hands text-success me-2" aria-hidden="true"></i>Paso 3 · Elige tu profesional</span></p>
+                            <label class="visually-hidden" for="masajistaId">Profesional</label>
+                            <select id="masajistaId" class="form-select form-select-lg" name="masajistaId" required>
                                 <option value="" selected disabled>-- Elige una masajista --</option>
                                 <option th:each="masseuse : ${masseuses}" th:value="${masseuse.id}" th:selected="${masseuse.id == selectedMasseuseId}" th:text="|${masseuse.name} - ${masseuse.specialty}|">Masajista</option>
                             </select>
                         </div>
 
-                        <!-- Paso 3: Fecha y Horarios Disponibles -->
                         <div class="booking-section">
-                            <label class="form-label fw-bold"><i class="fa-regular fa-calendar text-success me-2"></i>Paso 4: Fecha y Turno Disponible</label>
-                            <input type="date" class="form-control mb-3" name="fecha" required th:min="${today}" th:value="${selectedDate}">
+                            <p class="booking-step-label"><span class="booking-step-number">04</span><span><i class="fa-regular fa-calendar text-success me-2" aria-hidden="true"></i>Paso 4 · Fecha y horario</span></p>
+                            <label class="visually-hidden" for="fecha">Fecha de la reserva</label>
+                            <input id="fecha" type="date" class="form-control mb-3" name="fecha" required th:min="${today}" th:value="${selectedDate}">
                             
                             <label class="form-label small text-muted d-block">Elige sucursal, servicio, masajista y fecha para ver los turnos disponibles. Cada turno toma en cuenta la duración del servicio, el horario de atención y las citas existentes.</label>
-                            <div class="slot-grid">
-                                <button th:each="slot : ${availableSlots}" type="button" class="btn btn-outline-success slot-btn" th:classappend="${slot == selectedTime ? ' active' : ''}" th:text="${slot}" th:data-slot="${slot}">09:00</button>
+                            <div class="slot-grid" role="group" aria-label="Horarios disponibles">
+                                <button th:each="slot : ${availableSlots}" type="button" class="btn btn-outline-success slot-btn" th:classappend="${slot == selectedTime ? ' active' : ''}" th:attr="aria-pressed=${slot == selectedTime}" th:text="${slot}" th:data-slot="${slot}">09:00</button>
                                 <span class="text-muted small" th:if="${#lists.isEmpty(availableSlots)}">Selecciona todos los datos de la cita para consultar disponibilidad, o no quedan turnos para esta selección.</span>
                             </div>
-                            <input type="hidden" name="horaSeleccionada" th:value="${selectedTime != null and #lists.contains(availableSlots, selectedTime) ? selectedTime : (#lists.isEmpty(availableSlots) ? '' : availableSlots[0])}">
+                            <input id="horaSeleccionada" type="hidden" name="horaSeleccionada" th:value="${selectedTime != null and #lists.contains(availableSlots, selectedTime) ? selectedTime : (#lists.isEmpty(availableSlots) ? '' : availableSlots[0])}">
                         </div>
 
-                        <!-- Paso 4: Datos del Cliente -->
                         <div class="booking-section">
-                            <label class="form-label fw-bold"><i class="fa-regular fa-user text-success me-2"></i>Paso 5: Datos de Contacto</label>
+                            <p class="booking-step-label"><span class="booking-step-number">05</span><span><i class="fa-regular fa-user text-success me-2" aria-hidden="true"></i>Paso 5 · Tus datos</span></p>
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <input type="text" class="form-control" placeholder="Nombre completo" name="clienteNombre" required th:value="${clienteNombre}">
+                                    <label class="form-label" for="clienteNombre">Nombre completo</label>
+                                    <input id="clienteNombre" type="text" class="form-control" placeholder="Nombre completo" name="clienteNombre" required th:value="${clienteNombre}">
                                 </div>
                                 <div class="col-md-6">
-                                    <input type="text" class="form-control" placeholder="Cédula o identificación" name="clienteCedula" required th:value="${clienteCedula}">
+                                    <label class="form-label" for="clienteCedula">Cédula o identificación</label>
+                                    <input id="clienteCedula" type="text" class="form-control" placeholder="Cédula o identificación" name="clienteCedula" required th:value="${clienteCedula}">
                                 </div>
                                 <div class="col-md-6">
-                                    <input type="tel" class="form-control" placeholder="Teléfono de contacto" name="clienteTelefono" required th:value="${clienteTelefono}">
+                                    <label class="form-label" for="clienteTelefono">Teléfono de contacto</label>
+                                    <input id="clienteTelefono" type="tel" class="form-control" placeholder="Teléfono de contacto" name="clienteTelefono" required th:value="${clienteTelefono}">
                                 </div>
                                 <div class="col-md-6">
-                                    <input type="email" class="form-control" placeholder="Correo electrónico" name="clienteEmail" required th:value="${clienteEmail}">
+                                    <label class="form-label" for="clienteEmail">Correo electrónico</label>
+                                    <input id="clienteEmail" type="email" class="form-control" placeholder="Correo electrónico" name="clienteEmail" required th:value="${clienteEmail}">
                                 </div>
                             </div>
                         </div>
@@ -95,29 +100,23 @@
                 </div>
             </div>
         </div>
+        <aside class="booking-summary" aria-live="polite">
+            <div class="booking-summary-card">
+                <p class="booking-summary-eyebrow text-uppercase small fw-bold mb-2">Tu experiencia</p>
+                <h2>Resumen de reserva</h2>
+                <div class="booking-summary-list">
+                    <div><span>Sede</span><strong id="summaryBranch">Selecciona una sede</strong></div>
+                    <div><span>Tratamiento</span><strong id="summaryService">Por elegir</strong></div>
+                    <div><span>Profesional</span><strong id="summaryMasseuse">Por elegir</strong></div>
+                    <div><span>Fecha</span><strong id="summaryDate">Por elegir</strong></div>
+                    <div><span>Hora</span><strong id="summaryTime">Por elegir</strong></div>
+                </div>
+                <div class="booking-summary-total"><span>Total estimado</span><strong id="summaryPrice">Por elegir</strong></div>
+                <p class="booking-summary-note"><i class="fa-solid fa-circle-info me-2" aria-hidden="true"></i>El horario se confirma según la sede, el tratamiento y el profesional seleccionados.</p>
+            </div>
+        </aside>
     </div>
-</div>
+</main>
 
-</body>
-<script>
-    function refreshAvailability() {
-            const branch = document.querySelector('select[name="sucursalId"]').value;
-            const masseuse = document.querySelector('select[name="masajistaId"]').value;
-            const service = document.querySelector('select[name="servicioId"]').value;
-        const date = document.querySelector('input[name="fecha"]').value;
-            if (branch && masseuse && service && date) window.location.href = '/agendar/disponibilidad?sucursalId=' + branch + '&masajistaId=' + masseuse + '&servicioId=' + service + '&fecha=' + date;
-    }
-    document.querySelector('select[name="sucursalId"]').addEventListener('change', refreshAvailability);
-        document.querySelector('select[name="masajistaId"]').addEventListener('change', refreshAvailability);
-        document.querySelector('select[name="servicioId"]').addEventListener('change', refreshAvailability);
-    document.querySelector('input[name="fecha"]').addEventListener('change', refreshAvailability);
-    document.querySelectorAll('[data-slot]').forEach(function (button) {
-        button.addEventListener('click', function () {
-            document.querySelector('input[name="horaSeleccionada"]').value = button.dataset.slot;
-            document.querySelectorAll('[data-slot]').forEach(function (item) { item.classList.remove('active'); });
-            button.classList.add('active');
-        });
-    });
-</script>
 <script src="/js/spamoonbeauty-ui.js"></script>
 </html>

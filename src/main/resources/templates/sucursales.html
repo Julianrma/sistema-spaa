@@ -8,55 +8,96 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/spamoonbeauty.css">
 </head>
-<body class="public-page">
+<body class="public-page branches-page">
 
 <div th:replace="~{fragments/public-navbar :: navbar('branches')}"></div>
 
-<div class="container page-shell">
-    <div class="page-intro" data-reveal>
-        <p class="text-uppercase small fw-bold text-success mb-2">Encuentra tu momento</p>
-        <h1 class="fw-bold">Nuestras sucursales</h1>
-        <p class="text-muted">Encuentra la sede más cercana a tu ubicación y consulta las opiniones de nuestros clientes.</p>
+<main>
+<section class="branches-hero" data-reveal>
+    <div class="container branches-hero-layout">
+        <div class="branches-hero-copy">
+            <p class="eyebrow text-uppercase small fw-bold mb-2">Encuentra tu lugar para pausar</p>
+            <h1>Elige dónde comienza tu experiencia.</h1>
+            <p>Explora nuestros espacios, visualiza cada ubicación y elige la sede que mejor acompañe tu momento de bienestar.</p>
+        </div>
+        <div class="branches-hero-orbit" aria-hidden="true">
+            <div class="branches-orbit-ring branches-orbit-ring-one"></div>
+            <div class="branches-orbit-ring branches-orbit-ring-two"></div>
+            <div class="branches-orbit-pin"><i class="fa-solid fa-location-dot"></i></div>
+            <span class="branches-orbit-point branches-orbit-point-one"></span>
+            <span class="branches-orbit-point branches-orbit-point-two"></span>
+            <span class="branches-orbit-point branches-orbit-point-three"></span>
+        </div>
+    </div>
+</section>
+
+<section class="container branches-section" aria-labelledby="branches-title">
+    <div class="branches-heading" data-reveal>
+        <div>
+            <p class="eyebrow text-uppercase small fw-bold mb-2">Nuestros espacios</p>
+            <h2 id="branches-title">Encuentra tu sede</h2>
+        </div>
+        <span class="branches-count" th:text="|${#lists.size(branches)} ${#lists.size(branches) == 1 ? 'sede disponible' : 'sedes disponibles'}|">0 sedes disponibles</span>
     </div>
 
-    <div class="row g-4">
-        <!-- Columna Izquierda: Tarjetas de Sucursal -->
-        <div class="col-lg-5">
-            <div class="card branch-card shadow-sm p-3 mb-3 border-start border-4 border-success" th:each="branch, branchIndex : ${branches}" th:classappend="${branchIndex.index == 0 ? ' active' : ''}" th:data-lat="${branch.latitude}" th:data-lng="${branch.longitude}" th:data-name="${branch.name}" data-reveal>
-                <div class="d-flex justify-content-between align-items-start">
-                    <h5 class="fw-bold text-dark mb-1" th:text="${branch.name}">Sucursal</h5>
-                    <span class="badge bg-success" th:text="${branch.sector}">Sector</span>
+    <div class="branches-empty" th:if="${#lists.isEmpty(branches)}" data-reveal>
+        <div class="featured-empty-icon"><i class="fa-solid fa-location-dot"></i></div>
+        <h2 class="h4">Estamos preparando nuevos espacios</h2>
+        <p class="text-muted mb-0">No hay sucursales activas disponibles en este momento.</p>
+    </div>
+
+    <div class="branches-selector-layout" th:if="${!#lists.isEmpty(branches)}">
+        <div class="branches-list" aria-label="Sucursales disponibles">
+            <article class="card branch-card" th:each="branch, branchIndex : ${branches}" th:classappend="${branchIndex.index == 0 ? ' active' : ''}" th:data-lat="${branch.latitude}" th:data-lng="${branch.longitude}" th:data-name="${branch.name}" data-reveal>
+                <div class="branch-card-heading">
+                    <div>
+                        <p class="branch-card-index" th:text="|Sede ${branchIndex.count}|">Sede 1</p>
+                        <h3 th:text="${branch.name}">Sucursal</h3>
+                    </div>
+                    <span class="badge branch-sector" th:text="${branch.sector}">Sector</span>
                 </div>
-                <p class="small text-muted mb-2"><i class="fa-solid fa-location-dot text-danger me-1"></i><span th:text="${branch.address}">Dirección</span></p>
-                <div class="small text-muted mb-2"><i class="fa-regular fa-clock me-1"></i><span th:text="${branch.openingHours}">Horario</span></div>
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                    <span class="text-muted small"><i class="fa-regular fa-star me-1"></i>Opiniones verificadas en el portal</span>
-                    <a th:href="@{/agendar(sucursalId=${branch.id})}" class="btn btn-sm btn-outline-success">Elegir esta sede</a>
+                <div class="branch-card-details">
+                    <p><i class="fa-solid fa-location-dot" aria-hidden="true"></i><span th:text="${branch.address}">Dirección</span></p>
+                    <p><i class="fa-regular fa-clock" aria-hidden="true"></i><span th:text="${branch.openingHours}">Horario</span></p>
                 </div>
-            </div>
-            <div class="alert alert-secondary" th:if="${#lists.isEmpty(branches)}">No hay sucursales activas disponibles.</div>
+                <div class="branch-card-actions">
+                    <button type="button" class="btn btn-sm btn-outline-success branch-map-trigger" data-branch-map-trigger th:aria-label="|Ver ${branch.name} en el mapa|">
+                        <i class="fa-solid fa-map-location-dot me-1" aria-hidden="true"></i>Ver en mapa
+                    </button>
+                    <a th:href="@{/agendar(sucursalId=${branch.id})}" class="btn btn-sm btn-success">Elegir esta sede <i class="fa-solid fa-arrow-right ms-1" aria-hidden="true"></i></a>
+                </div>
+            </article>
         </div>
 
-        <!-- Columna Derecha: Mapa de Google Maps Embebido -->
-        <div class="col-lg-7" data-reveal data-reveal-delay="1">
+        <div class="branches-map-panel" data-reveal data-reveal-delay="1">
+            <div class="branches-map-heading">
+                <div>
+                    <p class="eyebrow text-uppercase small fw-bold mb-1">Ubicación seleccionada</p>
+                    <h3 id="selectedBranchName" th:text="${branches[0].name}">Sucursal</h3>
+                </div>
+                <span class="branches-map-status"><i class="fa-solid fa-circle" aria-hidden="true"></i>Mapa en vivo</span>
+            </div>
             <div class="map-container">
-                <!-- Iframe con vista de mapa dinámico centrado en Guayaquil -->
                 <iframe id="mapFrame"
                     th:src="${#lists.isEmpty(branches) ? 'https://maps.google.com/maps?q=-2.1709,-79.9005&z=14&output=embed' : 'https://maps.google.com/maps?q=' + branches[0].latitude + ',' + branches[0].longitude + '&z=14&output=embed'}"
-                    width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy">
+                    title="Mapa de la sucursal seleccionada"
+                    width="100%" height="100%" allowfullscreen="" loading="lazy">
                 </iframe>
             </div>
-            <div class="map-note p-3 rounded-bottom border border-top-0 small text-muted">
-                <i class="fa-solid fa-circle-info text-primary me-1"></i> Haz clic en cualquiera de las sucursales para actualizar la ubicación en el mapa.
+            <div class="map-note small" aria-live="polite">
+                <i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Selecciona “Ver en mapa” para explorar otra sede.</span>
             </div>
         </div>
     </div>
+</section>
 
-    <!-- Sección de Reseñas de Clientes -->
-    <div class="review-section" data-reveal>
+<section class="container branches-reviews review-section" data-reveal>
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="fw-bold">Reseñas y Experiencias de Clientes</h3>
-            <a href="#form-resena" class="btn btn-sm btn-outline-dark"><i class="fa-solid fa-pen me-1"></i>Escribir Reseña</a>
+            <div>
+                <p class="eyebrow text-uppercase small fw-bold mb-2">Experiencias compartidas</p>
+                <h2 class="fw-bold">Lo que viven nuestros clientes</h2>
+            </div>
+            <a href="#form-resena" class="btn btn-sm btn-outline-success"><i class="fa-solid fa-pen me-1"></i>Escribir reseña</a>
         </div>
 
         <div class="row g-3">
@@ -84,23 +125,19 @@
                 <div class="col-12"><button class="btn btn-dark" type="submit"><i class="fa-solid fa-paper-plane me-1"></i>Enviar reseña</button><span class="small text-muted ms-2">Será revisada antes de publicarse.</span></div>
             </div>
         </form>
-    </div>
-</div>
+    </section>
+</main>
 
-<script>
-    function updateMap(lat, lng, title) {
-        const frame = document.getElementById('mapFrame');
-        frame.src = `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
-    }
-    document.querySelectorAll('.branch-card').forEach(function (branchCard) {
-        branchCard.addEventListener('click', function () {
-            updateMap(branchCard.dataset.lat, branchCard.dataset.lng, branchCard.dataset.name);
-            document.querySelectorAll('.branch-card').forEach(function (card) { card.classList.remove('active'); });
-            branchCard.classList.add('active');
-        });
-    });
-</script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<section class="branches-final-cta" data-reveal>
+    <div class="container">
+        <div class="branches-final-cta-inner">
+            <p class="eyebrow text-uppercase small fw-bold mb-3">Tu bienestar, más cerca</p>
+            <h2>¿Ya sabes dónde comienza tu próximo momento?</h2>
+            <a class="btn btn-success btn-lg px-4" href="/agendar"><i class="fa-solid fa-calendar-check me-2" aria-hidden="true"></i>Agendar una cita</a>
+        </div>
+    </div>
+</section>
+
 <script src="/js/spamoonbeauty-ui.js"></script>
 </body>
 </html>
