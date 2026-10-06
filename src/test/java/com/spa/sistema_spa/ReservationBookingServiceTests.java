@@ -24,7 +24,8 @@ class ReservationBookingServiceTests {
     private final MasseuseRepository masseuses = mockOf(MasseuseRepository.class);
     private final ReservationNotificationService notifications = mockOf(ReservationNotificationService.class);
     private final ReservationBookingService booking = new ReservationBookingService(
-            services, reservations, branches, masseuses, notifications);
+            services, reservations, branches, masseuses, notifications,
+            new ReservationLifecycle(reservations, java.time.Clock.fixed(java.time.Instant.parse("2026-10-05T15:00:00Z"), ReservationPolicy.ZONE)));
     private static final LocalDate DATE = LocalDate.of(2099, 1, 5);
     private Reservation original;
 
@@ -185,24 +186,19 @@ class ReservationBookingServiceTests {
     }
 
     @Test
-    void deletionLocksRowAndAgendaAndIsSafeWhenAlreadyDeleted() {
-        assertTrue(booking.delete(1L).successful());
-        var order = inOrder(reservations, masseuses);
-        order.verify(reservations).findByIdForUpdate(1L);
-        order.verify(masseuses).findByIdForUpdate(3L);
-        order.verify(reservations).delete(original);
-        when(reservations.findByIdForUpdate(1L)).thenReturn(Optional.empty());
-        assertTrue(booking.delete(1L).successful());
-        assertFalse(booking.changeStatus(1L, "CONFIRMADA").successful());
-        verify(reservations, times(1)).delete(original);
-        verify(reservations, never()).save(any());
+    void deletionIsDeniedForEveryStateWithoutTouchingHistory() {
+        for (String state : ReservationPolicy.STATES) {
+            original.setStatus(state);
+            assertFalse(booking.delete(1L).successful());
+        }
+        verifyNoInteractions(reservations, masseuses);
     }
 
     @Test
     void legacyReservationWithoutMasseuseCannotBeReactivated() {
         ReflectionTestUtils.setField(original, "masseuseId", null);
         assertRejected("CONFIRMADA");
-        assertTrue(booking.delete(1L).successful());
+        assertFalse(booking.delete(1L).successful());
     }
 
     @Test

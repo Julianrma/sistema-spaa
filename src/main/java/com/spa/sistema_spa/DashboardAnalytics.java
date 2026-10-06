@@ -1,8 +1,6 @@
 package com.spa.sistema_spa;
 
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,7 +8,6 @@ import java.util.Comparator;
 
 public class DashboardAnalytics {
 
-    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("h:mm a");
     private final List<BranchStat> branchStats;
     private final List<TimeBandStat> timeBandStats;
     private final String leaderName;
@@ -40,6 +37,7 @@ public class DashboardAnalytics {
         byBand.put("Mediodía (12:00 - 15:00)", 0);
         byBand.put("Tarde (15:00 - 20:00)", 0);
         byBand.put("Noche (20:00 en adelante)", 0);
+        byBand.put("Horario sin clasificar", 0);
 
         for (Reservation reservation : reservations) {
             byBranch.computeIfPresent(reservation.getBranchId(), (key, value) -> value + 1);
@@ -68,13 +66,11 @@ public class DashboardAnalytics {
     }
 
     private static String bandFor(String value) {
-        try {
-            LocalTime time = LocalTime.parse(value.toUpperCase(), TIME_FORMAT);
-            if (time.isBefore(LocalTime.NOON)) return "Mañana (08:00 - 12:00)";
-            if (time.isBefore(LocalTime.of(15, 0))) return "Mediodía (12:00 - 15:00)";
-            if (time.isBefore(LocalTime.of(20, 0))) return "Tarde (15:00 - 20:00)";
-        } catch (DateTimeParseException ignored) {
-        }
+        LocalTime time = ReservationPolicy.parseTime(value);
+        if (time == null) return "Horario sin clasificar";
+        if (time.isBefore(LocalTime.NOON)) return "Mañana (08:00 - 12:00)";
+        if (time.isBefore(LocalTime.of(15, 0))) return "Mediodía (12:00 - 15:00)";
+        if (time.isBefore(LocalTime.of(20, 0))) return "Tarde (15:00 - 20:00)";
         return "Noche (20:00 en adelante)";
     }
 

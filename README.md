@@ -167,7 +167,10 @@ Permite generar dinámicamente las páginas que utiliza el cliente y el administ
 
 ## 🗄️ Base de datos
 
-SpaMoonBeauty utiliza **PostgreSQL**.
+SpaMoonBeauty utiliza **PostgreSQL** y **Flyway** para versionar el esquema.
+Las migraciones están en `src/main/resources/db/migration/`; Hibernate solo valida.
+Consulta la [guía de Flyway](docs/flyway.md) para adoptar una base existente con
+baseline 1, crear migraciones futuras y actualizar Windows/Fedora mediante Git.
 
 La configuración puede proporcionarse mediante variables de entorno:
 
@@ -210,7 +213,8 @@ cd sistema-spaa
 
 ### 2. Configurar PostgreSQL
 
-Crea una base de datos:
+Crea una base de datos solamente para una instalación nueva. Si ya existe con
+datos, sigue primero la [adopción segura con baseline](docs/flyway.md):
 
 ```sql
 CREATE DATABASE aura_spa2;

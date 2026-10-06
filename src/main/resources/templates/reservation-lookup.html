@@ -1,59 +1,90 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consultar reserva - SpaMoonBeauty</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/spamoonbeauty.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Mi reserva · SpaMoonBeauty</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="/css/spamoonbeauty.css">
 </head>
-<body class="public-page lookup-page">
-<div th:replace="~{fragments/public-navbar :: navbar('lookup')}"></div>
-<main class="container page-shell">
-    <div class="row justify-content-center">
-        <div class="col-lg-7" data-reveal>
-            <section class="card lookup-card">
-                <div class="lookup-heading">
-                    <h1 class="h3 fw-bold">Consultar reserva</h1>
-                    <p class="text-muted">Ingresa el correo usado al reservar y tu código privado.</p>
-                </div>
-                <div class="card-body lookup-body">
-                    <div th:if="${confirmation}" class="alert alert-success" th:text="${confirmation}"></div>
-                    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
-                    <form th:action="@{/reservas/consultar}" method="post" class="row g-3">
-                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
-                        <div class="col-12">
-                            <label for="email" class="form-label">Correo de la reserva</label>
-                            <input id="email" name="email" type="email" class="form-control" required autocomplete="email" th:value="${lookupEmail}">
-                        </div>
-                        <div class="col-12">
-                            <label for="accessCode" class="form-label">Código privado</label>
-                            <input id="accessCode" name="accessCode" type="text" class="form-control font-monospace" required autocomplete="off" th:value="${accessCode}">
-                        </div>
-                        <div class="col-12"><button class="btn btn-success" type="submit"><i class="fa-solid fa-magnifying-glass me-1"></i>Buscar reserva</button></div>
-                    </form>
-
-                    <div th:if="${reservation}" class="reservation-result">
-                        <h2 class="h5 fw-bold">Detalle de la cita</h2>
-                        <dl class="row mb-3">
-                            <dt class="col-sm-4">Estado</dt><dd class="col-sm-8" th:text="${reservation.status}">PENDIENTE</dd>
-                            <dt class="col-sm-4">Servicio</dt><dd class="col-sm-8" th:text="${serviceName}">Servicio</dd>
-                            <dt class="col-sm-4">Sucursal</dt><dd class="col-sm-8" th:text="${branchName}">Sucursal</dd>
-                            <dt class="col-sm-4">Fecha y hora</dt><dd class="col-sm-8" th:text="|${reservation.reservationDate} · ${reservation.reservationTime}|">Fecha · hora</dd>
-                        </dl>
-                        <form th:if="${reservation.status == 'PENDIENTE' or reservation.status == 'CONFIRMADA'}" th:action="@{/reservas/cancelar}" method="post" onsubmit="return confirm('¿Cancelar esta reserva?');">
-                            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
-                            <input type="hidden" name="email" th:value="${lookupEmail}">
-                            <input type="hidden" name="accessCode" th:value="${accessCode}">
-                            <button class="btn btn-outline-danger" type="submit"><i class="fa-solid fa-ban me-1"></i>Cancelar reserva</button>
-                        </form>
-                    </div>
-                </div>
-            </section>
-        </div>
-    </div>
+<body class="public-page experience-page">
+<div th:replace="~{fragments/public-navbar :: navbar('lookup')}">
+</div>
+<main class="container experience-shell">
+<header class="experience-heading">
+<p class="experience-eyebrow">Tu experiencia, a un paso</p>
+<h1>Un espacio para tu reserva.</h1>
+<p>Consulta los detalles de tu cita y gestiona tus planes con tranquilidad.</p>
+</header>
+<div th:if="${confirmation}" class="alert alert-success" role="status" th:text="${confirmation}">
+</div>
+<div th:if="${error}" class="lookup-empty" role="alert">
+<h2 class="h5">Revisemos tu reserva</h2>
+<p th:text="${error}">
+</p>
+<p class="experience-note">Usa el código privado completo, respetando mayúsculas y minúsculas. La referencia SMB no sustituye ese código.</p>
+</div>
+<div class="experience-grid lookup-grid">
+<section class="private-code-card">
+<p class="experience-eyebrow">Acceso privado</p>
+<h2>Consultar reserva</h2>
+<form th:action="@{/reservas/consultar}" method="post" class="lookup-form">
+<div>
+<label for="email" class="form-label">Correo de la reserva</label>
+<input id="email" name="email" type="email" class="form-control" maxlength="254" required autocomplete="email" th:value="${lookupEmail}">
+</div>
+<div>
+<label for="accessCode" class="form-label">Código privado</label>
+<input id="accessCode" name="accessCode" type="text" class="form-control font-monospace" maxlength="128" required autocomplete="off" spellcheck="false" autocapitalize="none" aria-describedby="code-help" th:value="${accessCode}">
+<p id="code-help" class="experience-note mt-2">Está en tu comprobante o en el correo de confirmación, si lo recibiste.</p>
+</div>
+<button class="btn btn-primary" type="submit">Buscar reserva</button>
+</form>
+</section>
+<div th:if="${appointment}">
+<div th:replace="~{fragments/reservation-summary :: summary(${appointment})}">
+</div>
+<section class="manage-reservation" aria-label="Gestionar reserva">
+<div th:if="${appointment.cancellable}">
+<h2 class="h5" th:text="${confirmCancellation == true ? '¿Quieres cancelar esta cita?' : '¿Cambiaron tus planes?'}">
+</h2>
+<p th:if="${confirmCancellation != true}">Puedes cancelarla antes de su hora de inicio. El turno quedará disponible para otra persona.</p>
+<p th:if="${confirmCancellation == true}">Cancelarás <strong th:text="${appointment.serviceName}">
+</strong>, el <strong th:text="${appointment.reservation.reservationDate}">
+</strong> a las <strong th:text="${appointment.reservation.reservationTime}">
+</strong>. Para volver a reservar tendrás que consultar la disponibilidad.</p>
+<div class="experience-actions">
+<form th:action="@{/reservas/cancelar}" method="post">
+<input type="hidden" name="email" th:value="${lookupEmail}">
+<input type="hidden" name="accessCode" th:value="${accessCode}">
+<input th:if="${confirmCancellation == true}" type="hidden" name="confirmed" value="true">
+<button class="btn btn-outline-danger" type="submit" th:text="${confirmCancellation == true ? 'Sí, cancelar esta reserva' : 'Cancelar reserva'}">
+</button>
+</form>
+<form th:if="${confirmCancellation == true}" th:action="@{/reservas/consultar}" method="post">
+<input type="hidden" name="email" th:value="${lookupEmail}">
+<input type="hidden" name="accessCode" th:value="${accessCode}">
+<button type="submit" class="btn btn-outline-light">Conservar mi cita</button>
+</form>
+</div>
+</div>
+<p th:unless="${appointment.cancellable}" class="experience-note" th:text="${appointment.reservation.status == 'EXPIRADA' ? 'El plazo de esta reserva terminó sin confirmación. Elige un nuevo horario cuando quieras.' : (appointment.reservation.status == 'CANCELADA' ? 'Esta reserva está cancelada. Puedes elegir una nueva experiencia cuando quieras.' : 'Esta cita no admite cancelación online por su estado o porque ya comenzó. Contacta con tu sucursal si necesitas ayuda.')}">
+</p>
+<a th:if="${appointment.reservation.status == 'CANCELADA' or appointment.reservation.status == 'EXPIRADA'}" href="/agendar" class="btn btn-primary">Reservar otra experiencia</a>
+</section>
+</div>
+<section th:unless="${appointment}" class="lookup-welcome">
+<span class="experience-orbit" aria-hidden="true">✧</span>
+<h2>Nos vemos pronto.</h2>
+<p>Aquí encontrarás tu tratamiento, profesional, horario y estado de la reserva.</p>
+<a href="/servicios">Explorar tratamientos →</a>
+</section>
+</div>
 </main>
-<script src="/js/spamoonbeauty-ui.js"></script>
+<script src="/js/spamoonbeauty-ui.js">
+</script>
 </body>
 </html>

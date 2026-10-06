@@ -8,31 +8,17 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/spamoonbeauty.css">
 </head>
-<body class="admin-page">
+<body class="admin-page workspace-page">
 
-<div class="container-fluid admin-layout">
-    <div class="row">
-        <!-- Sidebar -->
-        <nav class="col-md-3 col-lg-2 d-md-block sidebar py-3 px-3">
-            <h5 class="text-white fw-bold px-2 mb-4"><i class="fa-solid fa-spa text-success me-2"></i>SPAMOONBEAUTY ADMIN</h5>
-            <ul class="nav flex-column gap-1">
-                <li><a href="#" class="active"><i class="fa-solid fa-chart-pie me-2"></i>Dashboard & BI</a></li>
-                <li><a href="/admin/reservations"><i class="fa-solid fa-calendar-days me-2"></i>Citas y Turnos</a></li>
-                <li><a href="/admin/branches"><i class="fa-solid fa-shop me-2"></i>Sucursales (<span th:text="${#lists.size(branches)}">0</span>)</a></li>
-                <li><a href="/admin/masseuses"><i class="fa-solid fa-hands me-2"></i>Masajistas</a></li>
-                <li><a href="#servicios"><i class="fa-solid fa-list-check me-2"></i>Servicios CRUD</a></li>
-                <li><a href="#resenas"><i class="fa-solid fa-star-half-stroke me-2"></i>Moderación Reseñas</a></li>
-                <li class="mt-4"><a href="/" class="text-warning"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Ver Portal Cliente</a></li>
-                <li><form th:action="@{/admin/logout}" method="post"><input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" /><button class="btn btn-link text-danger text-decoration-none px-3" type="submit"><i class="fa-solid fa-right-from-bracket me-2"></i>Cerrar sesión</button></form></li>
-            </ul>
-        </nav>
-
+<div th:replace="~{fragments/admin-nav :: navigation('dashboard')}"></div>
+<div class="workspace-main dashboard-workspace">
+    <div>
         <!-- Main Content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 admin-main">
+        <main class="dashboard-main">
             <div class="admin-header d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom" data-reveal>
                 <div>
-                    <h2 class="h3 fw-bold text-dark mb-0">Analítica de Tráfico y Gestión Multisede</h2>
-                    <p class="text-muted small">Inteligencia de negocio para decisiones de apertura y capacidad operativa.</p>
+                    <h1 class="h3 fw-bold text-dark mb-0">Todo listo para un gran día.</h1>
+                    <p class="text-muted small">Tu agenda, tu equipo y la actividad de SpaMoonBeauty en un solo lugar.</p>
                 </div>
                 <div class="btn-group">
                     <a href="/admin/reservations" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-arrow-down me-1"></i>Gestionar citas</a>
@@ -40,13 +26,35 @@
                 </div>
             </div>
 
+            <section class="daily-overview" aria-label="Actividad de hoy">
+                <a class="daily-kpi" th:href="@{/admin/reservations(date=${today})}"><span class="experience-eyebrow">Agenda de hoy</span><strong th:text="${todayCount}"></strong><span>Pendientes y confirmadas · Ecuador</span></a>
+                <a class="daily-kpi" href="/admin/reservations?status=PENDIENTE"><span class="experience-eyebrow">Por confirmar</span><strong th:text="${pendingCount}"></strong><span>Citas futuras sin confirmar</span></a>
+                <div class="daily-kpi"><span class="experience-eyebrow">Tu equipo y catálogo</span><strong><span th:text="${#lists.size(masseuses)}"></span> / <span th:text="${#lists.size(services)}"></span></strong><span>Profesionales / servicios registrados</span></div>
+            </section>
+            <section class="dashboard-agenda">
+                <div class="appointment-card"><div class="results-heading"><h2 class="h4">Próximas citas</h2><a href="/admin/reservations">Ver agenda →</a></div>
+                    <a class="upcoming-row" th:each="item : ${upcoming}" th:href="@{/admin/reservations(q=${item.reference})}"><span class="upcoming-date" th:text="${#temporals.format(item.reservation.reservationDate, 'dd/MM')}"></span><span><strong th:text="${item.serviceName}"></strong><small th:text="|${item.reservation.customerName} · ${item.masseuseName}|"></small></span><strong th:text="${item.reservation.reservationTime}"></strong></a>
+                    <p th:if="${#lists.isEmpty(upcoming)}" class="experience-note">No hay próximas citas pendientes o confirmadas. Las nuevas reservas aparecerán aquí.</p>
+                </div>
+                <div class="appointment-card"><h2 class="h4">Requieren resolución <span class="badge bg-warning text-dark" th:text="${resolutionCount}"></span></h2><p class="experience-note">Confirmadas cuyo inicio ya pasó, sin límite de período. Revisa las cinco más antiguas y registra el resultado.</p>
+                    <a class="upcoming-row" th:each="item : ${requiringResolution}" th:href="@{/admin/reservations(q=${item.reference})}"><span><strong th:text="${item.reservation.customerName}"></strong><small th:text="|${#temporals.format(item.reservation.reservationDate, 'dd/MM/yyyy')} · ${item.reservation.reservationTime}|"></small></span><span>Resolver →</span></a>
+                    <p class="experience-note" th:if="${resolutionCount == 0}">No hay citas pendientes de resolución.</p>
+                    <a href="/admin/reservations?status=CONFIRMADA">Ver todas las confirmadas →</a>
+                </div>
+            </section>
+            <section id="analytics" class="appointment-card period-panel">
+                <div><h2 class="h4">La perspectiva completa</h2><p class="experience-note">Por fecha de la cita · Ecuador. Incluye todos los estados, también canceladas y expiradas.</p></div>
+                <form action="/admin/dashboard" method="get"><label for="analytics-period">Período</label><select id="analytics-period" name="period" class="form-select"><option value="today" th:selected="${selectedPeriod.key == 'today'}">Hoy</option><option value="7d" th:selected="${selectedPeriod.key == '7d'}">7 días</option><option value="30d" th:selected="${selectedPeriod.key == '30d'}">30 días</option><option value="all" th:selected="${selectedPeriod.key == 'all'}">Histórico</option></select><button class="btn btn-primary" type="submit">Aplicar</button></form>
+                <p class="experience-note" th:text="${selectedPeriod.start != null ? selectedPeriod.label + ': ' + #temporals.format(selectedPeriod.start, 'dd/MM/yyyy') + ' — ' + #temporals.format(selectedPeriod.end, 'dd/MM/yyyy') + ' (ambos incluidos)' : 'Histórico: todas las fechas, incluidas las citas futuras.'}"></p>
+                <div class="period-states"><div class="status-count" th:each="entry : ${statusCounts}"><span class="reservation-status" th:attr="data-status=${entry.key}" th:text="${entry.key}"></span><strong th:text="${entry.value}"></strong></div></div>
+            </section>
             <!-- Fila de Tarjetas KPI -->
             <div class="row g-3 mb-4" data-reveal>
                 <div class="col-md-3">
                     <div class="card kpi-card border-primary shadow-sm p-3 bg-white" data-reveal-delay="1">
                         <span class="text-muted small fw-bold">TOTAL RESERVAS</span>
                         <h3 class="fw-bold text-dark my-1" th:text="${reservationCount}">0</h3>
-                        <span class="text-muted small">reservas registradas</span>
+                        <span class="text-muted small">reservas en el período</span>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -65,7 +73,7 @@
                 </div>
                 <div class="col-md-3">
                     <div class="card kpi-card border-info shadow-sm p-3 bg-white" data-reveal-delay="3">
-                        <span class="text-muted small fw-bold">CALIFICACIÓN PROMEDIO</span>
+                        <span class="text-muted small fw-bold">CALIFICACIÓN · HISTÓRICA</span>
                         <h3 class="fw-bold text-dark my-1" th:text="${reviewCount > 0 ? #numbers.formatDecimal(averageRating, 1, 1) + ' / 5.0' : 'Sin datos'}">Sin datos</h3>
                         <span class="text-muted small" th:text="${reviewCount > 0 ? reviewCount + ' reseñas aprobadas' : 'Todavía no hay reseñas aprobadas'}">Todavía no hay reseñas aprobadas</span>
                     </div>
@@ -77,17 +85,17 @@
                 <div class="col-lg-7">
                     <div class="card analytics-card p-3 h-100">
                         <h5 class="fw-bold mb-3"><i class="fa-solid fa-chart-column text-primary me-2"></i>Afluencia de Clientes por Sucursal</h5>
-                        
+
                         <div class="mb-3" th:each="branch : ${analytics.branchStats}">
                             <div class="d-flex justify-content-between small fw-bold mb-1">
                                 <span th:text="${branch.name}">Sucursal</span>
                                 <span th:text="${branch.count + ' reservas (' + branch.percentage + '%)'}">0 reservas (0%)</span>
                             </div>
                             <div class="progress" style="height: 12px;">
-                                <div class="progress-bar" role="progressbar" th:style="|width: ${branch.percentage}%|" th:classappend="${branch.count > 0 ? ' bg-primary' : ' bg-secondary'}"></div>
+                                <div class="progress-bar" role="progressbar" th:attr="aria-label=${branch.name},aria-valuenow=${branch.percentage}" aria-valuemin="0" aria-valuemax="100" th:style="|width: ${branch.percentage}%|" th:classappend="${branch.count > 0 ? ' bg-primary' : ' bg-secondary'}"></div>
                             </div>
                         </div>
-                        <div class="alert alert-secondary py-2 px-3 small mt-3 mb-0" th:if="${reservationCount == 0}"><i class="fa-solid fa-circle-info me-1"></i>Las estadísticas aparecerán cuando se registren reservas reales.</div>
+                        <div class="alert alert-secondary py-2 px-3 small mt-3 mb-0" th:if="${reservationCount == 0}"><i class="fa-solid fa-circle-info me-1"></i>No hay citas en el período seleccionado.</div>
                     </div>
                 </div>
 
@@ -115,110 +123,49 @@
                 <div id="service-form" class="border-bottom p-3 filter-panel">
                     <h6 class="fw-bold" th:text="${editingService != null ? 'Editar servicio' : 'Agregar servicio'}">Agregar servicio</h6>
                     <form th:action="@{/admin/services/save}" method="post" class="row g-3">
-                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
+
                         <input type="hidden" name="id" th:value="${editingService != null ? editingService.id : ''}">
-                        <div class="col-md-6"><label class="form-label small fw-semibold">Nombre</label><input name="name" class="form-control" required th:value="${editingService != null ? editingService.name : ''}"></div>
-                        <div class="col-md-6"><label class="form-label small fw-semibold">Categoría</label><input name="category" class="form-control" required th:value="${editingService != null ? editingService.category : ''}"></div>
-                        <div class="col-12"><label class="form-label small fw-semibold">Descripción de la sesión</label><textarea name="description" class="form-control" rows="2" required th:text="${editingService != null ? editingService.description : ''}"></textarea></div>
-                        <div class="col-md-3"><label class="form-label small fw-semibold">Duración (minutos)</label><input name="durationMinutes" type="number" min="1" class="form-control" required th:value="${editingService != null ? editingService.durationMinutes : ''}"></div>
-                        <div class="col-md-3"><label class="form-label small fw-semibold">Precio</label><input name="price" type="number" min="0" step="0.01" class="form-control" required th:value="${editingService != null ? editingService.price : ''}"></div>
-                        <div class="col-md-6"><label class="form-label small fw-semibold">URL de imagen</label><input name="imageUrl" type="url" class="form-control" required th:value="${editingService != null ? editingService.imageUrl : ''}"></div>
+                        <div class="col-md-6"><label for="service-name" class="form-label small fw-semibold">Nombre</label><input id="service-name" name="name" class="form-control" required th:value="${editingService != null ? editingService.name : ''}"></div>
+                        <div class="col-md-6"><label for="service-category" class="form-label small fw-semibold">Categoría</label><input id="service-category" name="category" class="form-control" required th:value="${editingService != null ? editingService.category : ''}"></div>
+                        <div class="col-12"><label for="service-description" class="form-label small fw-semibold">Descripción de la sesión</label><textarea id="service-description" name="description" class="form-control" rows="2" required th:text="${editingService != null ? editingService.description : ''}"></textarea></div>
+                        <div class="col-md-3"><label for="service-durationMinutes" class="form-label small fw-semibold">Duración (minutos)</label><input id="service-durationMinutes" name="durationMinutes" type="number" min="1" class="form-control" required th:value="${editingService != null ? editingService.durationMinutes : ''}"></div>
+                        <div class="col-md-3"><label for="service-price" class="form-label small fw-semibold">Precio</label><input id="service-price" name="price" type="number" min="0" step="0.01" class="form-control" required th:value="${editingService != null ? editingService.price : ''}"></div>
+                        <div class="col-md-6"><label for="service-imageUrl" class="form-label small fw-semibold">URL de imagen</label><input id="service-imageUrl" name="imageUrl" type="url" class="form-control" required th:value="${editingService != null ? editingService.imageUrl : ''}"></div>
                         <div class="col-12"><div class="form-check form-switch"><input class="form-check-input" id="featured" name="featured" type="checkbox" value="true" th:checked="${editingService != null and editingService.featured}"><label class="form-check-label" for="featured">Mostrar como destacado en Inicio</label></div></div>
-                        <div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i>Guardar en PostgreSQL</button><a th:if="${editingService != null}" href="/admin/dashboard" class="btn btn-outline-secondary">Cancelar</a></div>
+                        <div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i>Guardar servicio</button><a th:if="${editingService != null}" href="/admin/dashboard" class="btn btn-outline-secondary">Cancelar</a></div>
                     </form>
                 </div>
-                <div class="table-responsive p-3">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>ID</th><th>Servicio</th><th>Categoría</th><th>Duración</th><th>Precio</th><th>Visibilidad</th><th>Estado</th><th class="text-end">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="service : ${services}">
-                                <td th:text="|#${service.id}|">#1</td>
-                                <td class="fw-semibold" th:text="${service.name}">Servicio</td>
-                                <td th:text="${service.category}">Categoría</td>
-                                <td th:text="|${service.durationMinutes} min|">60 min</td>
-                                <td th:text="|$${service.price}|">$45.00</td>
-                                <td><span class="badge" th:classappend="${service.featured ? ' bg-primary' : ' bg-secondary'}" th:text="${service.featured ? 'Destacado' : 'Normal'}">Normal</span></td>
-                                <td><span class="badge" th:classappend="${service.active ? ' bg-success' : ' bg-secondary'}" th:text="${service.active ? 'Activo' : 'Inactivo'}">Activo</span></td>
-                                <td class="text-end text-nowrap">
-                                    <a th:href="@{/admin/services/edit(id=${service.id})}" class="btn btn-sm btn-outline-primary" title="Editar"><i class="fa-solid fa-pen"></i></a>
-                                    <form th:action="@{/admin/services/toggle}" method="post" class="d-inline"><input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" /><input type="hidden" name="id" th:value="${service.id}"><button type="submit" class="btn btn-sm btn-outline-warning" th:title="${service.active ? 'Desactivar' : 'Activar'}"><i th:class="${service.active ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'}"></i></button></form>
-                                    <form th:action="@{/admin/services/delete}" method="post" class="d-inline" onsubmit="return confirm('¿Eliminar este servicio? Esta acción no se puede deshacer.');"><input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" /><input type="hidden" name="id" th:value="${service.id}"><button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="fa-solid fa-trash"></i></button></form>
-                                </td>
-                            </tr>
-                            <tr th:if="${#lists.isEmpty(services)}"><td colspan="8" class="text-center text-muted py-4">No hay servicios en la base de datos. Agrega el primero desde el formulario.</td></tr>
-                        </tbody>
-                    </table>
+                <div class="catalog-grid p-3">
+                    <article class="appointment-card catalog-item" th:each="service : ${services}">
+                        <img class="catalog-thumbnail" th:src="${service.imageUrl}" alt="" loading="lazy">
+                        <div class="appointment-heading"><h2 class="h4" th:text="${service.name}"></h2><span class="badge" th:classappend="${service.active ? ' bg-success' : ' bg-secondary'}" th:text="${service.active ? 'Activo' : 'Inactivo'}"></span></div>
+                        <p class="experience-eyebrow" th:text="${service.category}"></p><p class="catalog-detail" th:text="${service.description}"></p>
+                        <p th:text="|${service.durationMinutes} min · $${#numbers.formatDecimal(service.price, 1, 2)}|"></p><p class="experience-note" th:if="${service.featured}">Destacado en Inicio</p>
+                        <div th:replace="~{fragments/catalog-actions :: actions('/admin/services', ${service.id}, ${service.active})}"></div>
+                    </article>
+                    <p class="experience-note" th:if="${#lists.isEmpty(services)}">Todavía no hay servicios. Agrega el primero desde el formulario.</p>
                 </div>
             </div>
 
-            <div id="reservas" class="card catalog-card mt-4" data-reveal>
-                <div class="card-header bg-white py-3">
-                    <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-calendar-check me-2"></i>Reservas recibidas</h5>
-                </div>
-                <div class="table-responsive p-3">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr><th>ID</th><th>Cliente</th><th>Servicio ID</th><th>Sucursal</th><th>Fecha</th><th>Hora</th><th>Estado</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="reservation : ${reservations}">
-                                <td th:text="|#${reservation.id}|">#1</td>
-                                <td>
-                                    <div class="fw-semibold" th:text="${reservation.customerName}">Cliente</div>
-                                    <div class="small text-muted" th:text="${reservation.customerPhone}">0999999999</div>
-                                </td>
-                                <td th:text="${reservation.serviceId}">1</td>
-                                <td th:text="${reservation.branchId}">1</td>
-                                <td th:text="${reservation.reservationDate}">2026-09-22</td>
-                                <td th:text="${reservation.reservationTime}">10:30 AM</td>
-                                <td><span class="badge bg-warning text-dark" th:text="${reservation.status}">PENDIENTE</span></td>
-                            </tr>
-                            <tr th:if="${#lists.isEmpty(reservations)}">
-                                <td colspan="7" class="text-center text-muted py-4">Todavía no hay reservas registradas.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
+            <section id="reservas" class="appointment-card mt-4">
+                <div class="results-heading"><h2 class="h4">Últimas reservas recibidas</h2><a href="/admin/reservations">Gestionar todas →</a></div>
+                <a class="upcoming-row" th:each="item : ${recentAppointments}" th:href="@{/admin/reservations(q=${item.reference})}"><span class="experience-eyebrow" th:text="${item.reference}"></span><span><strong th:text="${item.reservation.customerName}"></strong><small th:text="|${item.serviceName} · ${item.branchName}|"></small></span><span class="reservation-status" th:attr="data-status=${item.reservation.status}" th:text="${item.reservation.status}"></span></a>
+                <p th:if="${#lists.isEmpty(recentAppointments)}" class="experience-note">Todavía no hay reservas. Comparte el catálogo para comenzar.</p>
+            </section>
             <div id="resenas" class="card catalog-card mt-4" data-reveal>
                 <div class="card-header bg-white py-3">
                     <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-star-half-stroke me-2"></i>Moderación de reseñas</h5>
                 </div>
-                <div class="table-responsive p-3">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light"><tr><th>Cliente</th><th>Sucursal</th><th>Calificación</th><th>Comentario</th><th>Estado</th><th>Acciones</th></tr></thead>
-                        <tbody>
-                            <tr th:each="review : ${reviews}">
-                                <td th:text="${review.customerName}">Cliente</td>
-                                <td th:text="${review.branchId}">1</td>
-                                <td th:text="|${review.rating} / 5|">5 / 5</td>
-                                <td th:text="${review.comment}">Comentario</td>
-                                <td><span class="badge" th:classappend="${review.status == 'APROBADA' ? ' bg-success' : ' bg-warning text-dark'}" th:text="${review.status}">PENDIENTE</span></td>
-                                <td class="text-nowrap">
-                                    <form th:if="${review.status != 'APROBADA'}" th:action="@{/admin/reviews/approve}" method="post" class="d-inline">
-                                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
-                                        <input type="hidden" name="id" th:value="${review.id}">
-                                        <button class="btn btn-sm btn-outline-success" type="submit" title="Aprobar">
-                                            <i class="fa-solid fa-check"></i> Aprobar
-                                        </button>
-                                    </form>
-                                    <form th:action="@{/admin/reviews/delete}" method="post" class="d-inline">
-                                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
-                                        <input type="hidden" name="id" th:value="${review.id}">
-                                        <button class="btn btn-sm btn-outline-danger" type="submit" title="Eliminar">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                            <tr th:if="${#lists.isEmpty(reviews)}"><td colspan="6" class="text-center text-muted py-4">Todavía no hay reseñas enviadas.</td></tr>
-                        </tbody>
-                    </table>
+                <div class="catalog-grid p-3">
+                    <article class="appointment-card catalog-item" th:each="review : ${reviews}">
+                        <div class="appointment-heading"><h2 class="h4" th:text="${review.customerName}"></h2><span class="reservation-status" th:text="${review.status}"></span></div>
+                        <p class="experience-note" th:text="${branchNames[review.branchId] ?: 'Sucursal no disponible'}"></p><strong th:text="|${review.rating} / 5|"></strong><p class="review-comment" th:text="${review.comment}"></p>
+                        <div class="catalog-actions">
+                            <form th:if="${review.status != 'APROBADA'}" th:action="@{/admin/reviews/approve}" method="post"><input type="hidden" name="id" th:value="${review.id}"><button class="btn btn-outline-light btn-sm" type="submit">Aprobar reseña</button></form>
+                            <details class="action-confirmation"><summary>Eliminar reseña</summary><p class="experience-note">Esta reseña se eliminará definitivamente.</p><form th:action="@{/admin/reviews/delete}" method="post"><input type="hidden" name="id" th:value="${review.id}"><label class="confirmation-check"><input type="checkbox" name="confirmed" value="true" required> Confirmo que quiero eliminarla</label><button class="btn btn-outline-danger btn-sm" type="submit">Eliminar definitivamente</button></form></details>
+                        </div>
+                    </article>
+                    <p class="experience-note" th:if="${#lists.isEmpty(reviews)}">Todavía no hay reseñas enviadas.</p>
                 </div>
             </div>
         </main>

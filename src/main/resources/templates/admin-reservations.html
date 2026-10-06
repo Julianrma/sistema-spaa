@@ -1,29 +1,147 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Citas y turnos - SpaMoonBeauty Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/spamoonbeauty.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Reservas · Administración · SpaMoonBeauty</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="/css/spamoonbeauty.css">
 </head>
-<body class="admin-crud-page">
-<nav class="navbar navbar-dark admin-topbar"><div class="container"><a class="navbar-brand fw-bold" href="/admin/dashboard"><i class="fa-solid fa-spa text-success me-2"></i>SPAMOONBEAUTY ADMIN</a><a href="/admin/dashboard" class="btn btn-outline-light btn-sm">Dashboard</a></div></nav>
-<main class="container-fluid crud-main"><div class="crud-toolbar d-flex justify-content-between align-items-center" data-reveal><div><h1 class="h3 fw-bold">Citas y turnos</h1><p class="text-muted mb-0">Confirma, completa, cancela o elimina las reservas reales.</p></div><a href="/agendar" class="btn btn-primary"><i class="fa-solid fa-plus me-1"></i>Nueva cita</a></div>
-<div class="card table-card" data-reveal><div class="filter-panel card-body"><div class="row g-3"><div class="col-md-4"><label class="form-label small fw-semibold">Filtrar por estado</label><select id="statusFilter" class="form-select" onchange="filterReservations()"><option value="">Todos</option><option>PENDIENTE</option><option>CONFIRMADA</option><option>COMPLETADA</option><option>CANCELADA</option></select></div><div class="col-md-4"><label class="form-label small fw-semibold">Filtrar por sucursal</label><select id="branchFilter" class="form-select" onchange="filterReservations()"><option value="">Todas</option><option th:each="branch : ${branches}" th:value="${branch.id}" th:text="${branch.name}">Sucursal</option></select></div></div></div><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>ID</th><th>Cliente</th><th>Servicio</th><th>Sucursal</th><th>Fecha</th><th>Hora</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
-<tr class="reservation-row" th:each="reservation : ${reservations}" th:data-status="${reservation.status}" th:data-branch="${reservation.branchId}"><td th:text="|#${reservation.id}|">#1</td><td><strong th:text="${reservation.customerName}">Cliente</strong><div class="small text-muted" th:text="${reservation.customerPhone}">Teléfono</div><div class="small text-muted" th:text="${reservation.customerEmail}">Correo</div></td><td><span th:each="service : ${services}" th:if="${service.id == reservation.serviceId}" th:text="${service.name}">Servicio</span></td><td><span th:each="branch : ${branches}" th:if="${branch.id == reservation.branchId}" th:text="${branch.name}">Sucursal</span></td><td th:text="${reservation.reservationDate}">Fecha</td><td th:text="${reservation.reservationTime}">Hora</td><td><span class="badge" th:classappend="${reservation.status == 'CANCELADA' ? ' bg-danger' : (reservation.status == 'COMPLETADA' ? ' bg-info text-dark' : (reservation.status == 'CONFIRMADA' ? ' bg-success' : ' bg-warning text-dark'))}" th:text="${reservation.status}">PENDIENTE</span></td><td class="text-nowrap"><form th:action="@{/admin/reservations/status}" method="post" class="d-inline"><input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" /><input type="hidden" name="id" th:value="${reservation.id}"><select name="status" class="form-select form-select-sm d-inline-block" style="width: 140px" onchange="this.form.submit()"><option value="PENDIENTE" th:selected="${reservation.status == 'PENDIENTE'}">Pendiente</option><option value="CONFIRMADA" th:selected="${reservation.status == 'CONFIRMADA'}">Confirmada</option><option value="COMPLETADA" th:selected="${reservation.status == 'COMPLETADA'}">Completada</option><option value="CANCELADA" th:selected="${reservation.status == 'CANCELADA'}">Cancelada</option></select></form><form th:action="@{/admin/reservations/delete}" method="post" class="d-inline" onsubmit="return confirm('¿Eliminar esta cita?');"><input type="hidden" name="id" th:value="${reservation.id}"><button class="btn btn-sm btn-outline-danger" type="submit"><i class="fa-solid fa-trash"></i></button></form></td></tr>
-<tr th:if="${#lists.isEmpty(reservations)}"><td colspan="8" class="empty-state text-center">Todavía no hay citas registradas.</td></tr>
-</tbody></table></div></div></main>
-<script>
-function filterReservations() {
-    const status = document.getElementById('statusFilter').value;
-    const branch = document.getElementById('branchFilter').value;
-    document.querySelectorAll('.reservation-row').forEach(function (row) {
-        row.hidden = (status && row.dataset.status !== status) || (branch && row.dataset.branch !== branch);
-    });
-}
+<body class="workspace-page">
+<div th:replace="~{fragments/admin-nav :: navigation('reservations')}">
+</div>
+<main class="workspace-main">
+<header class="workspace-heading">
+<div>
+<p class="experience-eyebrow">Agenda y atención</p>
+<h1>Reservas</h1>
+<p>Encuentra una cita. Revisa sus detalles. Decide el siguiente paso.</p>
+</div>
+<a href="/agendar" class="btn btn-primary">Nueva reserva</a>
+</header>
+<div th:if="${confirmation}" class="alert alert-success" role="status" th:text="${confirmation}">
+</div>
+<div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}">
+</div>
+<form th:action="@{/admin/reservations}" method="get" class="reservation-filters">
+<div class="search-filter">
+<label for="q" class="form-label">Cliente o referencia</label>
+<input id="q" name="q" maxlength="100" class="form-control" placeholder="Nombre o SMB-123" th:value="${filterQuery}">
+</div>
+<div>
+<label for="filter-status" class="form-label">Estado</label>
+<select id="filter-status" name="status" class="form-select">
+<option value="">Todos</option>
+<option th:each="state : ${states}" th:value="${state}" th:text="${state}" th:selected="${state == filterStatus}">
+</option>
+</select>
+</div>
+<div>
+<label for="filter-date" class="form-label">Fecha</label>
+<input id="filter-date" name="date" type="date" class="form-control" th:value="${filterDate}">
+</div>
+<div>
+<label for="filter-branch" class="form-label">Sucursal</label>
+<select id="filter-branch" name="branchId" class="form-select">
+<option value="">Todas</option>
+<option th:each="branch : ${branches}" th:value="${branch.id}" th:text="${branch.name}" th:selected="${branch.id == filterBranch}">
+</option>
+</select>
+</div>
+<div>
+<label for="filter-professional" class="form-label">Profesional</label>
+<select id="filter-professional" name="masseuseId" class="form-select">
+<option value="">Todas</option>
+<option th:each="person : ${masseuses}" th:value="${person.id}" th:text="${person.name}" th:selected="${person.id == filterMasseuse}">
+</option>
+</select>
+</div>
+<div class="filter-actions">
+<button class="btn btn-primary" type="submit">Aplicar filtros</button>
+<a href="/admin/reservations" class="btn btn-outline-light">Limpiar</a>
+</div>
+</form>
+<div class="results-heading">
+<h2 class="h5">
+<span th:text="${resultPage.totalElements}">
+</span> reservas encontradas</h2>
+<span>Más recientes primero · 20 por página</span>
+</div>
+<div class="reservation-list">
+<article class="admin-appointment" th:each="item : ${appointments}">
+<div class="appointment-identity">
+<span class="experience-eyebrow" th:text="${item.reference}">
+</span>
+<h2 th:text="${item.reservation.customerName}">
+</h2>
+<span class="reservation-status" th:attr="data-status=${item.reservation.status}" th:text="${item.reservation.status}">
+</span>
+</div>
+<dl class="admin-appointment-details">
+<div>
+<dt>Tratamiento</dt>
+<dd th:text="${item.serviceName}">
+</dd>
+</div>
+<div>
+<dt>Sucursal</dt>
+<dd th:text="${item.branchName}">
+</dd>
+</div>
+<div>
+<dt>Profesional</dt>
+<dd th:text="${item.masseuseName}">
+</dd>
+</div>
+<div>
+<dt>Fecha · hora</dt>
+<dd th:text="|${#temporals.format(item.reservation.reservationDate, 'dd/MM/yyyy')} · ${item.reservation.reservationTime}|">
+</dd>
+</div>
+<div>
+<dt>Contacto</dt>
+<dd>
+<span th:text="${item.reservation.customerEmail}">
+</span>
+<br>
+<span th:text="${item.reservation.customerPhone}">
+</span>
+</dd>
+</div>
+</dl>
+<div class="reservation-row-actions">
+<form th:if="${!#lists.isEmpty(item.transitions)}" th:action="@{/admin/reservations/action}" method="get">
+<input type="hidden" name="id" th:value="${item.reservation.id}">
+<label th:for="|action-${item.reservation.id}|" class="form-label">Cambiar estado</label>
+<select th:id="|action-${item.reservation.id}|" name="status" class="form-select" required>
+<option value="" disabled selected>Seleccionar acción</option>
+<option th:each="state : ${item.transitions}" th:value="${state}" th:text="${state}">
+</option>
+</select>
+<button class="btn btn-outline-primary" type="submit">Revisar cambio</button>
+</form>
+<p th:if="${#lists.isEmpty(item.transitions)}" class="experience-note" th:text="${item.reservation.status == 'EXPIRADA' ? 'Esta reserva expiró sin confirmación.' : 'Sin transiciones disponibles.'}"></p>
+<p th:if="${item.resolutionRequired}" class="experience-note">Requiere resolución · Confirma si el tratamiento se realizó o cancela la cita.</p>
+
+</div>
+</article>
+<div th:if="${resultPage.empty}" class="lookup-empty">
+<h2 class="h4">No hay reservas para esta selección.</h2>
+<p>Prueba otra fecha, cambia los filtros o registra una nueva cita.</p>
+<a href="/admin/reservations" class="btn btn-outline-light">Ver todas las reservas</a>
+</div>
+</div>
+<nav th:if="${resultPage.totalPages > 1}" class="reservation-pagination" aria-label="Páginas de reservas">
+<a th:if="${resultPage.hasPrevious()}" class="btn btn-outline-light" th:href="@{/admin/reservations(page=${resultPage.number - 1},status=${filterStatus},date=${filterDate},branchId=${filterBranch},masseuseId=${filterMasseuse},q=${filterQuery})}">Anterior</a>
+<span th:text="|Página ${resultPage.number + 1} · ${resultPage.totalPages}|">
+</span>
+<a th:if="${resultPage.hasNext()}" class="btn btn-outline-light" th:href="@{/admin/reservations(page=${resultPage.number + 1},status=${filterStatus},date=${filterDate},branchId=${filterBranch},masseuseId=${filterMasseuse},q=${filterQuery})}">Siguiente</a>
+</nav>
+</main>
+<script src="/js/spamoonbeauty-ui.js">
 </script>
-<script src="/js/spamoonbeauty-ui.js"></script>
 </body>
 </html>

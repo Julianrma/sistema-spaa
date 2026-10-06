@@ -8,7 +8,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
 
-public interface ReservationRepository extends JpaRepository<Reservation, Long> {
+public interface ReservationRepository extends JpaRepository<Reservation, Long>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<Reservation> {
+    List<Reservation> findByStatusAndReservationDateLessThanEqualOrderByIdAsc(String status, java.time.LocalDate date);
+
+    @org.springframework.data.jpa.repository.Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update Reservation r set r.status = 'EXPIRADA' where r.id = :id and r.status = 'PENDIENTE' and r.reservationDate = :date and r.reservationTime = :time")
+    int expirePending(@Param("id") Long id, @Param("date") java.time.LocalDate date, @Param("time") String time);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from Reservation r where r.id = :id")
     Optional<Reservation> findByIdForUpdate(@Param("id") Long id);

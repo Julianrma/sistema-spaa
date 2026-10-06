@@ -241,7 +241,8 @@ class SistemaSpaApplicationTests {
 				.param("clienteCedula", "0000000001")
 				.param("clienteTelefono", "0999999996")
 				.param("clienteEmail", "seis@example.com"))
-				.andExpect(status().isOk());
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/reservas/confirmada"));
 
 		org.junit.jupiter.api.Assertions.assertTrue(reservationRepository.findAll().stream()
 				.anyMatch(reservation -> masseuse.getId().equals(reservation.getMasseuseId())

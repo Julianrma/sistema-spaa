@@ -32,3 +32,10 @@ build/
 ### VS Code ###
 .vscode/
 aura_spa2.sql
+
+# Local credentials and database backups (versioned migrations remain tracked).
+.env
+.env.*
+!.env.example
+*.dump
+*.backup

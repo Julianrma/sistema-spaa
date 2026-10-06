@@ -1,0 +1,8 @@
+<div th:fragment="actions(base, id, active)" class="catalog-actions">
+    <a th:href="@{${base + '/edit'}(id=${id})}" class="btn btn-outline-light btn-sm">Editar</a>
+    <details class="action-confirmation">
+        <summary th:text="${active ? 'Desactivar' : 'Activar'}"></summary>
+        <p class="experience-note" th:text="${active ? 'Dejará de aparecer entre las opciones disponibles para nuevas reservas. El historial se conserva.' : 'Volverá a estar disponible para nuevas reservas.'}"></p>
+        <form th:action="@{${base + '/toggle'}}" method="post"><input type="hidden" name="id" th:value="${id}"><button class="btn btn-outline-light btn-sm" type="submit" th:text="${active ? 'Confirmar desactivación' : 'Confirmar activación'}"></button></form>
+    </details>
+</div>

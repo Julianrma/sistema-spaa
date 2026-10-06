@@ -1,0 +1,16 @@
+<nav th:fragment="navigation(active)" class="workspace-nav" aria-label="Administración">
+<a class="workspace-brand" href="/admin/dashboard">SpaMoonBeauty <span>ADMIN</span>
+</a>
+<div class="workspace-links">
+<a href="/admin/dashboard" th:attr="aria-current=${active == 'dashboard' ? 'page' : null}">Resumen</a>
+<a href="/admin/reservations" th:attr="aria-current=${active == 'reservations' ? 'page' : null}">Reservas</a>
+<a href="/admin/dashboard#servicios">Servicios</a>
+<a href="/admin/branches" th:attr="aria-current=${active == 'branches' ? 'page' : null}">Sucursales</a>
+<a href="/admin/masseuses" th:attr="aria-current=${active == 'professionals' ? 'page' : null}">Profesionales</a>
+<a href="/admin/dashboard#resenas">Reseñas</a>
+<a href="/">Ver sitio</a>
+<form th:action="@{/admin/logout}" method="post">
+<button type="submit" class="btn btn-outline-light btn-sm">Salir</button>
+</form>
+</div>
+</nav>

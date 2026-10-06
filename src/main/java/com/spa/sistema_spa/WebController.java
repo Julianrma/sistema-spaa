@@ -11,6 +11,14 @@ import java.time.format.DateTimeParseException;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.ui.Model;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import java.time.Instant;
+import java.time.Duration;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Controller
 public class WebController {
@@ -21,6 +29,7 @@ public class WebController {
     private final BranchRepository branchRepository;
     private final MasseuseRepository masseuseRepository;
     private final ReservationBookingService reservationBookingService;
+    private final ReservationLifecycle lifecycle;
     private final AdminCredentials adminCredentials;
     private final LoginAttemptService loginAttemptService;
 
@@ -28,7 +37,7 @@ public class WebController {
                          ReviewRepository reviewRepository,
                          BranchRepository branchRepository, MasseuseRepository masseuseRepository,
                          ReservationBookingService reservationBookingService,
-                         AdminCredentials adminCredentials, LoginAttemptService loginAttemptService) {
+                         AdminCredentials adminCredentials, LoginAttemptService loginAttemptService, ReservationLifecycle lifecycle) {
         this.serviceRepository = serviceRepository;
         this.reservationRepository = reservationRepository;
         this.reviewRepository = reviewRepository;
@@ -37,6 +46,7 @@ public class WebController {
         this.reservationBookingService = reservationBookingService;
         this.adminCredentials = adminCredentials;
         this.loginAttemptService = loginAttemptService;
+        this.lifecycle = lifecycle;
     }
 
     @GetMapping("/")
@@ -71,18 +81,25 @@ public class WebController {
     }
 
     @GetMapping("/admin/dashboard")
-    public String adminDashboard(HttpSession session, Model model) {
+    public String adminDashboard(HttpSession session, Model model, @RequestParam(defaultValue = "all") String period) {
         if (!Boolean.TRUE.equals(session.getAttribute("adminAuthenticated"))) {
             return "redirect:/admin/login";
         }
+
+        lifecycle.reconcile();
         var reservations = reservationRepository.findAllByOrderByIdDesc();
         var branches = branchRepository.findAllByOrderByIdAsc();
-        DashboardAnalytics analytics = DashboardAnalytics.from(reservations, branches);
+        var selectedPeriod = DashboardPeriod.of(period, lifecycle.now().toLocalDate());
+        var periodReservations = selectedPeriod.select(reservations);
+        DashboardAnalytics analytics = DashboardAnalytics.from(periodReservations, branches);
+        model.addAttribute("selectedPeriod", selectedPeriod);
+        model.addAttribute("branchNames", branches.stream().collect(Collectors.toMap(b -> b.getId().intValue(), Branch::getName)));
         model.addAttribute("services", serviceRepository.findAllByOrderByIdAsc());
         model.addAttribute("branches", branches);
         model.addAttribute("masseuses", masseuseRepository.findAllByOrderByIdAsc());
-        model.addAttribute("reservationCount", reservations.size());
+        model.addAttribute("reservationCount", periodReservations.size());
         model.addAttribute("reservations", reservations);
+        populateDashboardActivity(model, reservations, periodReservations);
         model.addAttribute("analytics", analytics);
         List<Review> reviews = reviewRepository.findAll();
         List<Review> approvedReviews = reviewRepository.findByStatusOrderByIdDesc("APROBADA");
@@ -190,54 +207,77 @@ public class WebController {
     }
 
     @GetMapping("/admin/reservations")
-    public String reservationsAdmin(HttpSession session, Model model) {
+    public String reservationsAdmin(HttpSession session, Model model,
+            @RequestParam(defaultValue = "") String status, @RequestParam(defaultValue = "") String date,
+            @RequestParam(required = false) Integer branchId, @RequestParam(required = false) Long masseuseId,
+            @RequestParam(defaultValue = "") String q, @RequestParam(defaultValue = "0") int page) {
         if (!isAdmin(session)) return "redirect:/admin/login";
-        model.addAttribute("reservations", reservationRepository.findAllByOrderByIdDesc());
+        lifecycle.reconcile();
+
+        boolean invalid = (!date.isBlank() && parseDate(date) == null)
+                || (!status.isBlank() && !ReservationPolicy.STATES.contains(status)) || q.length() > 100;
+        if (invalid) model.addAttribute("error", "Revisa la fecha, el estado y la búsqueda (máximo 100 caracteres).");
+        var results = reservationRepository.findAll(ReservationFilters.matching(invalid ? "INVALID" : status,
+                parseDate(date), branchId, masseuseId, q.length() > 100 ? "" : q),
+                PageRequest.of(Math.max(0, Math.min(page, 100000)), 20,
+                        Sort.by(Sort.Order.desc("reservationDate"), Sort.Order.desc("reservationTime"), Sort.Order.desc("id"))));
+        if (results.isEmpty() && results.getTotalElements() > 0) {
+            results = reservationRepository.findAll(ReservationFilters.matching(status, parseDate(date), branchId, masseuseId, q),
+                    PageRequest.of(results.getTotalPages() - 1, 20, results.getSort()));
+        }
+        model.addAttribute("appointments", summaries(results.getContent()));
+        model.addAttribute("resultPage", results);
         model.addAttribute("branches", branchRepository.findAllByOrderByIdAsc());
-        model.addAttribute("services", serviceRepository.findAllByOrderByIdAsc());
         model.addAttribute("masseuses", masseuseRepository.findAllByOrderByIdAsc());
+        model.addAttribute("states", ReservationPolicy.STATES);
+        model.addAttribute("filterStatus", status);
+        model.addAttribute("filterDate", date);
+        model.addAttribute("filterBranch", branchId);
+        model.addAttribute("filterMasseuse", masseuseId);
+        model.addAttribute("filterQuery", q.length() > 100 ? "" : q);
         return "admin-reservations";
     }
 
+    @GetMapping("/admin/reservations/action")
+    public String reservationAction(@RequestParam Long id, @RequestParam(defaultValue = "") String status,
+            @RequestParam(defaultValue = "status") String operation, HttpSession session, Model model) {
+        if (!isAdmin(session)) return "redirect:/admin/login";
+        lifecycle.reconcile();
+
+        Reservation reservation = reservationRepository.findById(id).orElse(null);
+        if (reservation == null) return "redirect:/admin/reservations";
+        model.addAttribute("appointment", summaries(List.of(reservation)).getFirst());
+        boolean valid = ("status".equals(operation)
+                && ReservationPolicy.transitions(reservation, lifecycle.now()).contains(status)
+                && !reservation.getStatus().equals(status));
+        model.addAttribute("actionValid", valid);
+        model.addAttribute("operation", operation);
+        model.addAttribute("targetStatus", status);
+        return "admin-reservation-action";
+    }
+
     @PostMapping("/admin/reservations/status")
-    public String updateReservationStatus(@RequestParam Long id, @RequestParam String status, HttpSession session) {
+    public String updateReservationStatus(@RequestParam Long id, @RequestParam String status,
+                                          HttpSession session, RedirectAttributes redirect) {
         if (!isAdmin(session)) return "redirect:/admin/login";
         var result = reservationBookingService.changeStatus(id, status);
-        if (!result.successful()) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.CONFLICT, result.message());
-        }
+        redirect.addFlashAttribute(result.successful() ? "confirmation" : "error", result.message());
         return "redirect:/admin/reservations";
     }
 
     @PostMapping("/admin/reservations/delete")
-    public String deleteReservation(@RequestParam Long id, HttpSession session) {
+    public String deleteReservation(@RequestParam Long id, HttpSession session, RedirectAttributes redirect) {
         if (!isAdmin(session)) return "redirect:/admin/login";
-        var result = reservationBookingService.delete(id);
-        if (!result.successful()) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.CONFLICT, result.message());
-        }
-        return "redirect:/admin/reservations";
+        throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.FORBIDDEN, reservationBookingService.delete(id).message());
     }
 
     @GetMapping("/admin/services/edit")
-    public String editService(@RequestParam Long id, HttpSession session, Model model) {
+    public String editService(@RequestParam Long id, HttpSession session, Model model,
+                              @RequestParam(defaultValue = "all") String period) {
         if (!isAdmin(session)) return "redirect:/admin/login";
-        model.addAttribute("services", serviceRepository.findAllByOrderByIdAsc());
-        model.addAttribute("branches", branchRepository.findAllByOrderByIdAsc());
-        model.addAttribute("masseuses", masseuseRepository.findAllByOrderByIdAsc());
         model.addAttribute("editingService", serviceRepository.findById(id).orElse(null));
-        var reservations = reservationRepository.findAllByOrderByIdDesc();
-        model.addAttribute("reservationCount", reservations.size());
-        model.addAttribute("reservations", reservations);
-        model.addAttribute("analytics", DashboardAnalytics.from(reservations, branchRepository.findAllByOrderByIdAsc()));
-        List<Review> reviews = reviewRepository.findAll();
-        List<Review> approvedReviews = reviewRepository.findByStatusOrderByIdDesc("APROBADA");
-        model.addAttribute("reviews", reviews);
-        model.addAttribute("reviewCount", approvedReviews.size());
-        model.addAttribute("averageRating", approvedReviews.stream().mapToInt(review -> review.getRating()).average().orElse(0));
-        return "admin-dashboard";
+        return adminDashboard(session, model, period);
     }
 
     @GetMapping("/admin/masseuses")
@@ -352,8 +392,9 @@ public class WebController {
     }
 
     @PostMapping("/admin/reviews/delete")
-    public String deleteReview(@RequestParam Long id, HttpSession session) {
+    public String deleteReview(@RequestParam Long id, @RequestParam(defaultValue = "false") boolean confirmed, HttpSession session) {
         if (!isAdmin(session)) return "redirect:/admin/login";
+        if (!confirmed) return "redirect:/admin/dashboard?reviewConfirmationRequired#resenas";
         reviewRepository.deleteById(id);
         return "redirect:/admin/dashboard#resenas";
     }
@@ -368,14 +409,15 @@ public class WebController {
                                      @RequestParam String fecha, @RequestParam String horaSeleccionada,
                                      @RequestParam String clienteNombre, @RequestParam String clienteCedula,
                                      @RequestParam String clienteTelefono, @RequestParam String clienteEmail,
-                                     Model model) {
+                                     Model model, HttpSession session) {
         LocalDate reservationDate = parseDate(fecha);
         ReservationBookingService.BookingResult result = reservationBookingService.book(servicioId, sucursalId,
             masajistaId, reservationDate, horaSeleccionada, clienteNombre, clienteCedula,
             clienteTelefono, clienteEmail);
         model.addAttribute(result.successful() ? "confirmation" : "error", result.message());
         if (result.successful()) {
-            model.addAttribute("reservationAccessCode", result.accessCode());
+            session.setAttribute("reservationReceipt", new ReservationReceipt(clienteEmail.strip(), result.accessCode(), Instant.now()));
+            return "redirect:/reservas/confirmada";
         }
         populateBookingModel(model, sucursalId, masajistaId, servicioId, fecha);
         model.addAttribute("selectedTime", horaSeleccionada);
@@ -386,47 +428,88 @@ public class WebController {
         return "agendar";
     }
 
-    @GetMapping("/reservas/consultar")
-    public String reservationLookup(Model model) {
-        model.addAttribute("reservationLookup", true);
+    private record ReservationReceipt(String email, String code, Instant createdAt) { }
+
+    @GetMapping("/reservas/confirmada")
+    public String reservationConfirmed(HttpSession session, Model model) {
+        Object value = session.getAttribute("reservationReceipt");
+        if (!(value instanceof ReservationReceipt receipt)
+                || Duration.between(receipt.createdAt(), Instant.now()).toMinutes() >= 30) {
+            session.removeAttribute("reservationReceipt");
+            return "redirect:/reservas/consultar";
+        }
+        if (!populateReservation(model, receipt.email(), receipt.code())) return "redirect:/reservas/consultar";
+        return "reservation-confirmation";
+    }
+
+    @GetMapping({"/reservas/consultar", "/reservation-lookup"})
+    public String reservationLookup() {
         return "reservation-lookup";
     }
 
-    @PostMapping("/reservas/consultar")
+    @PostMapping({"/reservas/consultar", "/reservation-lookup"})
     public String lookupReservation(@RequestParam String email, @RequestParam String accessCode, Model model) {
-        Reservation reservation = reservationBookingService.findReservation(email, accessCode).orElse(null);
-        model.addAttribute("reservationLookup", true);
-        model.addAttribute("lookupEmail", email);
-        model.addAttribute("accessCode", accessCode);
-        if (reservation == null) {
-            model.addAttribute("error", "No encontramos una reserva con esos datos.");
-        } else {
-            model.addAttribute("reservation", reservation);
-            model.addAttribute("serviceName", serviceRepository.findById(reservation.getServiceId())
-                    .map(SpaService::getName).orElse("Servicio no disponible"));
-            model.addAttribute("branchName", branchRepository.findById(reservation.getBranchId().longValue())
-                    .map(Branch::getName).orElse("Sucursal no disponible"));
+        if (!populateReservation(model, email, accessCode)) {
+            model.addAttribute("error", "No encontramos una reserva con esos datos. Revisa el correo y el código privado e inténtalo de nuevo.");
         }
         return "reservation-lookup";
     }
 
     @PostMapping("/reservas/cancelar")
-    public String cancelReservation(@RequestParam String email, @RequestParam String accessCode, Model model) {
-        ReservationBookingService.BookingResult result = reservationBookingService.cancel(email, accessCode);
-        model.addAttribute(result.successful() ? "confirmation" : "error", result.message());
-        model.addAttribute("reservationLookup", true);
-        model.addAttribute("lookupEmail", email);
-        model.addAttribute("accessCode", accessCode);
-        if (result.successful()) {
-            reservationBookingService.findReservation(email, accessCode).ifPresent(reservation -> {
-                model.addAttribute("reservation", reservation);
-                model.addAttribute("serviceName", serviceRepository.findById(reservation.getServiceId())
-                        .map(SpaService::getName).orElse("Servicio no disponible"));
-                model.addAttribute("branchName", branchRepository.findById(reservation.getBranchId().longValue())
-                        .map(Branch::getName).orElse("Sucursal no disponible"));
-            });
+    public String cancelReservation(@RequestParam String email, @RequestParam String accessCode,
+                                   @RequestParam(defaultValue = "false") boolean confirmed, Model model) {
+        if (!populateReservation(model, email, accessCode)) {
+            model.addAttribute("error", "No encontramos una reserva con esos datos.");
+            return "reservation-lookup";
         }
+        if (!confirmed) {
+            model.addAttribute("confirmCancellation", true);
+            return "reservation-lookup";
+        }
+        var result = reservationBookingService.cancel(email, accessCode);
+        populateReservation(model, email, accessCode);
+        model.addAttribute(result.successful() ? "confirmation" : "error", result.message());
         return "reservation-lookup";
+    }
+
+    private boolean populateReservation(Model model, String email, String code) {
+        model.asMap().remove("appointment");
+        model.addAttribute("lookupEmail", email);
+        model.addAttribute("accessCode", code);
+        var found = reservationBookingService.findReservation(email, code);
+        if (found.isEmpty()) return false;
+        model.addAttribute("appointment", summaries(List.of(found.get())).getFirst());
+        return true;
+    }
+
+    private List<ReservationSummary> summaries(List<Reservation> reservations) {
+        Map<Long, SpaService> services = serviceRepository.findAll().stream().collect(Collectors.toMap(SpaService::getId, Function.identity()));
+        Map<Long, Branch> branches = branchRepository.findAll().stream().collect(Collectors.toMap(Branch::getId, Function.identity()));
+        Map<Long, Masseuse> masseuses = masseuseRepository.findAll().stream().collect(Collectors.toMap(Masseuse::getId, Function.identity()));
+        return reservations.stream().map(r -> ReservationSummary.from(r, services.get(r.getServiceId()),
+                branches.get(r.getBranchId().longValue()), masseuses.get(r.getMasseuseId()), lifecycle.now())).toList();
+    }
+
+    private void populateDashboardActivity(Model model, List<Reservation> reservations, List<Reservation> periodReservations) {
+        LocalDate today = lifecycle.now().toLocalDate();
+        var active = reservations.stream().filter(r -> "PENDIENTE".equals(r.getStatus()) || "CONFIRMADA".equals(r.getStatus())).toList();
+        var resolution = reservations.stream().filter(r -> "CONFIRMADA".equals(r.getStatus())
+                && ReservationPolicy.hasStarted(r, lifecycle.now())).toList();
+        model.addAttribute("resolutionCount", resolution.size());
+        model.addAttribute("requiringResolution", summaries(resolution.stream()
+                .sorted(java.util.Comparator.comparing(Reservation::getReservationDate).thenComparing(Reservation::getReservationTime))
+                .limit(5).toList()));
+        model.addAttribute("today", today);
+        model.addAttribute("todayCount", active.stream().filter(r -> today.equals(r.getReservationDate())).count());
+        model.addAttribute("pendingCount", reservations.stream().filter(r -> "PENDIENTE".equals(r.getStatus()) && ReservationPolicy.isFuture(r, lifecycle.now())).count());
+        model.addAttribute("upcoming", summaries(active.stream().filter(r -> ReservationPolicy.canCancel(r, lifecycle.now()))
+                .sorted(java.util.Comparator.comparing(Reservation::getReservationDate).thenComparing(Reservation::getReservationTime))
+                .limit(5).toList()));
+        model.addAttribute("recentAppointments", summaries(reservations.stream().limit(6).toList()));
+        var distribution = new java.util.LinkedHashMap<String, Long>();
+        ReservationPolicy.STATES.forEach(state -> distribution.put(state,
+                periodReservations.stream().filter(r -> state.equals(r.getStatus())).count()));
+        model.addAttribute("statusCounts", distribution);
     }
 
     @GetMapping("/agendar/disponibilidad")
@@ -449,7 +532,7 @@ public class WebController {
         model.addAttribute("selectedMasseuseId", masseuseId);
         model.addAttribute("selectedServiceId", serviceId);
         model.addAttribute("selectedDate", date);
-        model.addAttribute("today", LocalDate.now());
+        model.addAttribute("today", lifecycle.now().toLocalDate());
     }
 
     private LocalDate parseDate(String value) {

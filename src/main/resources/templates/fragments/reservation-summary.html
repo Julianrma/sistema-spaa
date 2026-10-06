@@ -1,0 +1,52 @@
+<section th:fragment="summary(appointment)" class="appointment-card" aria-label="Detalle de la reserva">
+    <div class="appointment-heading">
+<div>
+<p class="experience-eyebrow" th:text="${appointment.reference}">
+</p>
+<h2 th:text="${appointment.serviceName}">
+</h2>
+</div>
+<span class="reservation-status" th:attr="data-status=${appointment.reservation.status}" th:text="${appointment.reservation.status}">
+</span>
+</div>
+    <p th:if="${appointment.reservation.status == 'EXPIRADA'}" class="experience-note mt-3">Esta reserva expiró sin confirmación. Puedes consultar la disponibilidad para una nueva cita.</p>
+    <p th:if="${appointment.resolutionRequired}" class="experience-note mt-3">La hora de esta cita ya pasó. Tu sucursal aún debe confirmar si se realizó el tratamiento.</p>
+    <dl class="appointment-details">
+        <div>
+<dt>Fecha</dt>
+<dd th:text="${#temporals.format(appointment.reservation.reservationDate, 'dd/MM/yyyy')}">
+</dd>
+</div>
+        <div>
+<dt>Hora · Ecuador</dt>
+<dd th:text="${appointment.reservation.reservationTime}">
+</dd>
+</div>
+        <div>
+<dt>Sucursal</dt>
+<dd th:text="${appointment.branchName}">
+</dd>
+</div>
+        <div>
+<dt>Profesional</dt>
+<dd th:text="${appointment.masseuseName}">
+</dd>
+</div>
+        <div>
+<dt>Duración</dt>
+<dd th:text="${appointment.duration != null ? appointment.duration + ' minutos' : 'Por confirmar'}">
+</dd>
+</div>
+        <div>
+<dt>Precio del tratamiento</dt>
+<dd th:text="${appointment.price != null ? '$' + #numbers.formatDecimal(appointment.price, 1, 2) : 'Por confirmar'}">
+</dd>
+</div>
+        <div class="appointment-client">
+<dt>A nombre de</dt>
+<dd th:text="${appointment.reservation.customerName}">
+</dd>
+</div>
+    </dl>
+<p class="experience-note">El precio y la duración que ves son los vigentes. Si cambiaron desde que reservaste, confirma los detalles con tu sucursal.</p>
+</section>

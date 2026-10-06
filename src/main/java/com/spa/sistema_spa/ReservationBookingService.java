@@ -30,18 +30,20 @@ public class ReservationBookingService {
     private final BranchRepository branchRepository;
     private final MasseuseRepository masseuseRepository;
     private final ReservationNotificationService notificationService;
+    private final ReservationLifecycle lifecycle;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public ReservationBookingService(SpaServiceRepository serviceRepository,
                                      ReservationRepository reservationRepository,
                                      BranchRepository branchRepository,
                                      MasseuseRepository masseuseRepository,
-                                     ReservationNotificationService notificationService) {
+                                     ReservationNotificationService notificationService, ReservationLifecycle lifecycle) {
         this.serviceRepository = serviceRepository;
         this.reservationRepository = reservationRepository;
         this.branchRepository = branchRepository;
         this.masseuseRepository = masseuseRepository;
         this.notificationService = notificationService;
+        this.lifecycle = lifecycle;
     }
 
     @Transactional(readOnly = true)
@@ -52,7 +54,7 @@ public class ReservationBookingService {
     private List<String> availableSlots(Integer branchId, Long masseuseId, Long serviceId, LocalDate date,
                                         Long excludedReservationId) {
         if (branchId == null || masseuseId == null || serviceId == null || date == null
-                || date.isBefore(LocalDate.now())) {
+                || date.isBefore(lifecycle.now().toLocalDate())) {
             return List.of();
         }
 
@@ -65,11 +67,13 @@ public class ReservationBookingService {
 
         List<Reservation> existing = reservationRepository
                 .findByMasseuseIdAndReservationDateAndStatusNot(masseuseId, date, "CANCELADA")
-                .stream().filter(r -> excludedReservationId == null || !excludedReservationId.equals(r.getId()))
+                .stream().filter(r -> !"EXPIRADA".equals(r.getStatus()) && !ReservationPolicy.shouldExpire(r, lifecycle.now()))
+                .filter(r -> excludedReservationId == null || !excludedReservationId.equals(r.getId()))
                 .toList();
         if (service.getDurationMinutes() == null) return List.of();
         return BookingAvailability.availableSlots(branch.getOpeningHours(), date.getDayOfWeek(),
-                service.getDurationMinutes(), existing, serviceDurations(existing));
+                service.getDurationMinutes(), existing, serviceDurations(existing)).stream()
+                .filter(slot -> date.atTime(ReservationPolicy.parseTime(slot)).isAfter(lifecycle.now())).toList();
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -79,7 +83,7 @@ public class ReservationBookingService {
         if (date == null) {
             return BookingResult.failure("La fecha de la reserva no es válida.");
         }
-        if (date.isBefore(LocalDate.now())) {
+        if (date.isBefore(lifecycle.now().toLocalDate())) {
             return BookingResult.failure("No puedes reservar una fecha pasada.");
         }
         if (!validCustomerDetails(customerName, customerId, customerPhone, customerEmail)) {
@@ -117,18 +121,19 @@ public class ReservationBookingService {
         return BookingResult.success("Tu cita fue registrada. Guarda el código privado que aparece aquí para consultarla o cancelarla.", accessCode);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Optional<Reservation> findReservation(String email, String accessCode) {
-        if (email == null || accessCode == null || accessCode.isBlank()) {
+        if (!validLookupCredentials(email, accessCode)) {
             return Optional.empty();
         }
-        return reservationRepository.findByAccessCodeHashAndCustomerEmailIgnoreCase(
-                hashAccessCode(accessCode.strip()), email.strip());
+        var found = reservationRepository.findForUpdateByAccessCode(hashAccessCode(accessCode.strip()), email.strip());
+        found.ifPresent(lifecycle::reconcileLocked);
+        return found;
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public BookingResult cancel(String email, String accessCode) {
-        if (email == null || accessCode == null || accessCode.isBlank()) {
+        if (!validLookupCredentials(email, accessCode)) {
             return BookingResult.failure("No encontramos una reserva con esos datos.");
         }
         Reservation reservation = reservationRepository.findForUpdateByAccessCode(
@@ -136,13 +141,13 @@ public class ReservationBookingService {
         if (reservation == null) {
             return BookingResult.failure("No encontramos una reserva con esos datos.");
         }
+        lifecycle.reconcileLocked(reservation);
         if (!lockMasseuse(reservation)) return BookingResult.failure("La masajista ya no existe.");
         if ("CANCELADA".equals(reservation.getStatus())) {
             return BookingResult.success("La reserva ya estaba cancelada.", accessCode);
         }
-        if (!validTransition(reservation.getStatus(), "CANCELADA")) {
-            return BookingResult.failure("Esta reserva ya no se puede cancelar porque su estado es "
-                    + reservation.getStatus() + ".");
+        if (!ReservationPolicy.canCancel(reservation, lifecycle.now())) {
+            return BookingResult.failure("Solo puedes cancelar citas pendientes o confirmadas antes de su hora de inicio.");
         }
         reservation.setStatus("CANCELADA");
         reservationRepository.save(reservation);
@@ -153,9 +158,10 @@ public class ReservationBookingService {
     public BookingResult changeStatus(Long id, String targetStatus) {
         Reservation reservation = reservationRepository.findByIdForUpdate(id).orElse(null);
         if (reservation == null) return BookingResult.failure("La reserva ya no existe.");
+        lifecycle.reconcileLocked(reservation);
         if (!lockMasseuse(reservation)) return BookingResult.failure("La masajista ya no existe.");
         String current = reservation.getStatus();
-        if (!validTransition(current, targetStatus)) {
+        if (!validTransition(reservation, targetStatus)) {
             return BookingResult.failure("Transición de estado no permitida.");
         }
         if (current.equals(targetStatus)) return BookingResult.success("La reserva ya tiene ese estado.");
@@ -169,13 +175,9 @@ public class ReservationBookingService {
         return BookingResult.success("Estado actualizado.");
     }
 
-    @Transactional(isolation = Isolation.READ_COMMITTED)
+    // Reservation history is permanent, including terminal states.
     public BookingResult delete(Long id) {
-        Reservation reservation = reservationRepository.findByIdForUpdate(id).orElse(null);
-        if (reservation == null) return BookingResult.success("La reserva ya no existe.");
-        if (!lockMasseuse(reservation)) return BookingResult.failure("La masajista ya no existe.");
-        reservationRepository.delete(reservation);
-        return BookingResult.success("Reserva eliminada.");
+        return BookingResult.failure("Las reservas forman parte del historial y no se eliminan.");
     }
 
     // Existing reservations: lock their row first, then the shared agenda owner.
@@ -185,14 +187,8 @@ public class ReservationBookingService {
                 || masseuseRepository.findByIdForUpdate(reservation.getMasseuseId()).isPresent();
     }
 
-    private boolean validTransition(String current, String target) {
-        if (current == null || target == null) return false;
-        return switch (current) {
-            case "PENDIENTE", "CONFIRMADA" -> List.of("PENDIENTE", "CONFIRMADA", "COMPLETADA", "CANCELADA").contains(target);
-            case "CANCELADA" -> List.of("CANCELADA", "PENDIENTE", "CONFIRMADA").contains(target);
-            case "COMPLETADA" -> "COMPLETADA".equals(target);
-            default -> false;
-        };
+    private boolean validTransition(Reservation reservation, String target) {
+        return target != null && ReservationPolicy.transitions(reservation, lifecycle.now()).contains(target);
     }
 
     private String generateAccessCode() {
@@ -220,13 +216,19 @@ public class ReservationBookingService {
     }
 
     private boolean validCustomerDetails(String name, String customerId, String phone, String email) {
-        if (name == null || name.strip().length() < 2 || customerId == null || phone == null || email == null) {
+        if (name == null || name.strip().length() < 2 || name.strip().length() > 255
+                || customerId == null || phone == null || email == null || email.strip().length() > 254) {
             return false;
         }
         return ID_PATTERN.matcher(customerId.strip()).matches()
                 && PHONE_PATTERN.matcher(phone.strip()).matches()
                 && phone.chars().filter(Character::isDigit).count() >= 7
                 && EMAIL_PATTERN.matcher(email.strip()).matches();
+    }
+
+    private boolean validLookupCredentials(String email, String code) {
+        return email != null && !email.isBlank() && email.length() <= 254
+                && code != null && !code.isBlank() && code.length() <= 128;
     }
 
     public record BookingResult(boolean successful, String message, String accessCode) {

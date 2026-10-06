@@ -6,33 +6,12 @@ import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoCon
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.annotation.Order;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 @SpringBootApplication(exclude = UserDetailsServiceAutoConfiguration.class)
 public class SistemaSpaApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(SistemaSpaApplication.class, args);
-    }
-
-    @Bean
-    @Order(0)
-    CommandLineRunner migrateReservationMasseuseColumn(JdbcTemplate jdbcTemplate) {
-        return args -> {
-            jdbcTemplate.execute("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS masseuse_id BIGINT");
-        };
-    }
-
-    @Bean
-    @Order(3)
-    CommandLineRunner backfillReservationMasseuse(JdbcTemplate jdbcTemplate) {
-        return args -> {
-            jdbcTemplate.update("""
-                    UPDATE reservations
-                    SET masseuse_id = (SELECT MIN(id) FROM masseuses)
-                    WHERE masseuse_id IS NULL
-                    """);
-        };
     }
 
     @Bean

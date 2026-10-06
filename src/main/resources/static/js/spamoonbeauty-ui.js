@@ -1,5 +1,6 @@
 (function () {
     'use strict';
+    document.documentElement.classList.add('js-enabled');
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const revealItems = document.querySelectorAll('[data-reveal]');
@@ -17,7 +18,7 @@
                     currentObserver.unobserve(entry.target);
                 }
             });
-        }, { threshold: 0.12, rootMargin: '0px 0px -40px' });
+        }, { threshold: 0, rootMargin: '0px' });
 
         revealItems.forEach((element) => observer.observe(element));
     }
@@ -212,18 +213,39 @@
             field?.addEventListener('change', refreshAvailability);
         });
 
-        bookingPage.querySelectorAll('[data-slot]').forEach((button) => {
-            button.addEventListener('click', () => {
-                timeInput.value = button.dataset.slot;
-                bookingPage.querySelectorAll('[data-slot]').forEach((item) => {
-                    const selected = item === button;
-                    item.classList.toggle('active', selected);
-                    item.setAttribute('aria-pressed', String(selected));
-                });
-                updateBookingSummary();
-            });
-        });
+        timeInput?.addEventListener('change', updateBookingSummary);
 
         updateBookingSummary();
     }
+    document.querySelectorAll('[data-copy-code]').forEach((button) => {
+        if (!navigator.clipboard || !window.isSecureContext) return;
+        button.hidden = false;
+        button.addEventListener('click', async () => {
+            const code = document.getElementById(button.dataset.copyCode);
+            const feedback = button.parentElement.querySelector('.copy-feedback');
+            try {
+                await navigator.clipboard.writeText(code.textContent.trim());
+                feedback.textContent = 'Código copiado. Guárdalo en un lugar privado.';
+            } catch (_) {
+                feedback.textContent = 'Selecciona y copia el código manualmente.';
+            }
+        });
+    });
+})();
+
+// Hash sections share the dashboard route; expose their active location to keyboard users.
+(() => {
+    const nav = document.querySelector('.workspace-links');
+    if (!nav || !['/admin/dashboard', '/admin/services/edit'].includes(location.pathname)) return;
+    const updateSection = () => {
+        const hash = location.pathname === '/admin/services/edit' ? '#servicios' : location.hash;
+        const destination = hash === '#resenas' ? '/admin/dashboard#resenas' :
+            ['#servicios', '#service-form'].includes(hash) ? '/admin/dashboard#servicios' : '/admin/dashboard';
+        nav.querySelectorAll('a').forEach(link => {
+            if (link.getAttribute('href') === destination) link.setAttribute('aria-current', 'page');
+            else link.removeAttribute('aria-current');
+        });
+    };
+    updateSection();
+    window.addEventListener('hashchange', updateSection);
 })();
